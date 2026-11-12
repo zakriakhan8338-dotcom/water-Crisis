@@ -1,0 +1,2341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AAB AI — Smart Water Crisis Prediction & Intelligence Platform</title>
+    
+    <!-- Google Fonts: Poppins & Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        deepNavy: '#0B1F33',
+                        waterBlue: '#168AAD',
+                        aqua: '#52D6C8',
+                        lightBg: '#F4F8FB',
+                        warnYellow: '#F4B942',
+                        dangerRed: '#E45858',
+                    },
+                    fontFamily: {
+                        heading: ['Poppins', 'sans-serif'],
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Leaflet CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F4F8FB;
+            color: #0B1F33;
+            overflow-x: hidden;
+        }
+        h1, h2, h3, h4, h5, h6, .font-heading {
+            font-family: 'Poppins', sans-serif;
+        }
+        /* Custom subtle scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #F4F8FB;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #CBD5E1;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #168AAD;
+        }
+        /* SVG Telemetry Path Animation */
+        @keyframes dashFlow {
+            to {
+                stroke-dashoffset: -40;
+            }
+        }
+        .telemetry-line {
+            stroke-dasharray: 6 6;
+            animation: dashFlow 2.5s linear infinite;
+        }
+        @keyframes pulseRing {
+            0% { transform: scale(0.85); opacity: 0.9; }
+            70% { transform: scale(1.6); opacity: 0; }
+            100% { transform: scale(1.6); opacity: 0; }
+        }
+        .pulse-node {
+            transform-origin: center;
+            animation: pulseRing 2.2s cubic-bezier(0.24, 0, 0.38, 1) infinite;
+        }
+        /* Leaflet z-index adjustments */
+        .leaflet-container {
+            z-index: 10;
+            font-family: 'Inter', sans-serif;
+        }
+        .custom-div-icon {
+            background: transparent;
+            border: none;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased selection:bg-waterBlue selection:text-white">
+
+    <!-- ==================== GLOBAL TOP NAVBAR ==================== -->
+    <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-xs">
+        <div class="max-w-[1440px] mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
+            <!-- Brand Identity -->
+            <div class="flex items-center gap-3 cursor-pointer" onclick="switchTopMode('landing')">
+                <div class="w-10 h-10 rounded-xl bg-deepNavy flex items-center justify-center text-aqua shadow-sm relative overflow-hidden">
+                    <i data-lucide="droplets" class="w-5 h-5 relative z-10"></i>
+                    <div class="absolute inset-0 bg-waterBlue/20"></div>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="font-heading font-bold text-xl tracking-tight text-deepNavy">AAB <span class="text-waterBlue">AI</span></span>
+                        <span class="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-aqua/15 text-deepNavy border border-aqua/40">
+                            District Khyber Pilot
+                        </span>
+                    </div>
+                    <p class="text-[11px] text-slate-500 hidden md:block leading-none mt-0.5">Predict Water Problems Before They Become a Crisis.</p>
+                </div>
+            </div>
+
+            <!-- Top Mode Switcher Pills -->
+            <nav class="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200/70">
+                <button onclick="switchTopMode('landing')" id="mode-btn-landing" class="mode-pill px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all bg-white text-deepNavy shadow-xs">
+                    <span class="flex items-center gap-1.5"><i data-lucide="globe" class="w-3.5 h-3.5 text-waterBlue"></i> <span>Overview</span></span>
+                </button>
+                <button onclick="switchTopMode('dashboard')" id="mode-btn-dashboard" class="mode-pill px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all text-slate-600 hover:text-deepNavy">
+                    <span class="flex items-center gap-1.5"><i data-lucide="layout-dashboard" class="w-3.5 h-3.5 text-waterBlue"></i> <span>Intelligence Center</span></span>
+                </button>
+                <button onclick="handleAdminSwitch()" id="mode-btn-admin" class="mode-pill px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all text-slate-600 hover:text-deepNavy">
+                    <span class="flex items-center gap-1.5"><i data-lucide="shield-check" class="w-3.5 h-3.5 text-waterBlue"></i> <span class="hidden sm:inline">Admin Portal</span><span class="sm:hidden">Admin</span></span>
+                </button>
+            </nav>
+
+            <!-- Right Actions -->
+            <div class="flex items-center gap-2.5">
+                <span class="hidden xl:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-50 border border-amber-200 text-amber-800 text-[11px] font-medium">
+                    <span class="w-1.5 h-1.5 rounded-full bg-warnYellow"></span> Demo Data Mode
+                </span>
+                <button onclick="openAuthModal()" id="auth-header-btn" class="px-3.5 py-2 rounded-xl bg-deepNavy hover:bg-slate-800 text-white text-xs sm:text-sm font-medium transition flex items-center gap-1.5 shadow-xs">
+                    <i data-lucide="user-plus" class="w-3.5 h-3.5 text-aqua"></i>
+                    <span id="auth-btn-label">Join Pilot</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- ==================== VIEW 1: PUBLIC LANDING PAGE ==================== -->
+    <main id="view-landing" class="flex-1">
+        <!-- HERO SECTION -->
+        <section class="relative bg-white border-b border-slate-200/80 overflow-hidden">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-20">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
+                    <!-- Hero Copy -->
+                    <div class="lg:col-span-6 space-y-6">
+                        <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-lightBg border border-waterBlue/20 text-waterBlue text-xs font-semibold">
+                            <i data-lucide="map-pin" class="w-3.5 h-3.5"></i>
+                            <span>Landi Kotal & Surrounding Villages • District Khyber, KP</span>
+                        </div>
+                        <h1 class="text-3xl sm:text-4xl lg:text-5xl font-bold text-deepNavy leading-[1.15] tracking-tight">
+                            Water Intelligence for a <span class="text-waterBlue">Better Tomorrow.</span>
+                        </h1>
+                        <p class="text-base sm:text-lg text-slate-600 leading-relaxed max-w-xl">
+                            Empowering communities with AI-powered water monitoring, early warnings, and intelligent insights to prevent water shortages across District Khyber.
+                        </p>
+                        <div class="flex flex-wrap items-center gap-3.5 pt-2">
+                            <button onclick="switchTopMode('dashboard', 'overview')" class="px-6 py-3.5 rounded-xl bg-waterBlue hover:bg-[#127391] text-white font-semibold text-sm transition shadow-sm flex items-center gap-2">
+                                <span>Explore Water Intelligence</span>
+                                <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                            </button>
+                            <button onclick="switchTopMode('dashboard', 'reports')" class="px-6 py-3.5 rounded-xl bg-white hover:bg-slate-50 text-deepNavy border border-slate-300 font-semibold text-sm transition flex items-center gap-2">
+                                <i data-lucide="mic" class="w-4 h-4 text-dangerRed"></i>
+                                <span>Report a Water Problem</span>
+                            </button>
+                        </div>
+
+                        <!-- 3 Demo KPI Cards -->
+                        <div class="pt-6 border-t border-slate-100">
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Pilot Telemetry Snapshot</span>
+                                <span class="text-[11px] font-medium px-2 py-0.5 rounded bg-slate-100 text-slate-600">Demo Data</span>
+                            </div>
+                            <div class="grid grid-cols-3 gap-3 sm:gap-4">
+                                <div class="p-3.5 rounded-xl bg-lightBg border border-slate-200/70">
+                                    <div class="text-2xl sm:text-3xl font-heading font-bold text-deepNavy" id="hero-stat-reports">142</div>
+                                    <div class="text-xs text-slate-600 font-medium mt-0.5">Community Reports</div>
+                                </div>
+                                <div class="p-3.5 rounded-xl bg-lightBg border border-slate-200/70">
+                                    <div class="text-2xl sm:text-3xl font-heading font-bold text-waterBlue" id="hero-stat-villages">5</div>
+                                    <div class="text-xs text-slate-600 font-medium mt-0.5">Monitored Villages</div>
+                                </div>
+                                <div class="p-3.5 rounded-xl bg-lightBg border border-slate-200/70">
+                                    <div class="text-2xl sm:text-3xl font-heading font-bold text-dangerRed" id="hero-stat-alerts">3</div>
+                                    <div class="text-xs text-slate-600 font-medium mt-0.5">Water Risk Alerts</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Hero Visual: Interactive District Khyber Mountain & Telemetry Node Network -->
+                    <div class="lg:col-span-6">
+                        <div class="bg-deepNavy rounded-2xl p-5 sm:p-6 shadow-lg border border-slate-800 text-white relative overflow-hidden">
+                            <div class="flex items-center justify-between mb-4">
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="w-2 h-2 rounded-full bg-aqua animate-pulse"></span>
+                                        <span class="text-xs font-semibold tracking-wider uppercase text-aqua">Khyber Terrain Telemetry</span>
+                                    </div>
+                                    <h3 class="text-base font-semibold text-white mt-0.5">Landi Kotal Basin Network</h3>
+                                </div>
+                                <span class="text-[11px] px-2.5 py-1 rounded-md bg-white/10 text-slate-200 border border-white/10">Simulated Topology • Demo Data</span>
+                            </div>
+
+                            <!-- Interactive SVG Mountain Topography & Connected Village Nodes -->
+                            <div class="relative rounded-xl bg-[#071524] border border-white/10 overflow-hidden">
+                                <svg viewBox="0 0 600 340" class="w-full h-auto block" id="khyber-hero-svg">
+                                    <defs>
+                                        <linearGradient id="mountainBack" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="0%" stop-color="#168AAD" stop-opacity="0.28"/>
+                                            <stop offset="100%" stop-color="#0B1F33" stop-opacity="0.9"/>
+                                        </linearGradient>
+                                        <linearGradient id="mountainFront" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="0%" stop-color="#52D6C8" stop-opacity="0.22"/>
+                                            <stop offset="100%" stop-color="#071524" stop-opacity="1"/>
+                                        </linearGradient>
+                                    </defs>
+
+                                    <!-- Subtle Grid -->
+                                    <g stroke="#ffffff" stroke-opacity="0.04" stroke-width="1">
+                                        <line x1="0" y1="70" x2="600" y2="70"/>
+                                        <line x1="0" y1="140" x2="600" y2="140"/>
+                                        <line x1="0" y1="210" x2="600" y2="210"/>
+                                        <line x1="0" y1="280" x2="600" y2="280"/>
+                                        <line x1="120" y1="0" x2="120" y2="340"/>
+                                        <line x1="240" y1="0" x2="240" y2="340"/>
+                                        <line x1="360" y1="0" x2="360" y2="340"/>
+                                        <line x1="480" y1="0" x2="480" y2="340"/>
+                                    </g>
+
+                                    <!-- Khyber Mountain Ridges -->
+                                    <polygon points="0,250 95,125 195,195 310,85 435,175 525,110 600,190 600,340 0,340" fill="url(#mountainBack)"/>
+                                    <polygon points="0,290 135,185 255,245 385,155 495,220 600,165 600,340 0,340" fill="url(#mountainFront)"/>
+
+                                    <!-- Connected Data Telemetry Lines -->
+                                    <g stroke="#52D6C8" stroke-width="1.8" fill="none" opacity="0.75">
+                                        <path d="M 115,215 L 245,175 L 330,225 L 470,155" class="telemetry-line"/>
+                                        <path d="M 245,175 L 395,255 L 470,155" class="telemetry-line"/>
+                                    </g>
+
+                                    <!-- Node 1: Torkham Border Zone (High Risk - Red) -->
+                                    <g class="cursor-pointer" onclick="selectHeroNode('Torkham Border Zone', 'High Risk (82/100)', '34% Storage • Severe supply pressure', '#E45858')">
+                                        <circle cx="115" cy="215" r="14" fill="#E45858" class="pulse-node"/>
+                                        <circle cx="115" cy="215" r="6.5" fill="#E45858" stroke="#FFFFFF" stroke-width="2"/>
+                                        <text x="115" y="242" text-anchor="middle" fill="#F8FAFC" font-size="11" font-weight="600">Torkham Zone</text>
+                                        <text x="115" y="256" text-anchor="middle" fill="#FCA5A5" font-size="9.5">Risk: 82/100</text>
+                                    </g>
+
+                                    <!-- Node 2: Landi Kotal Bazar (Moderate Risk - Yellow) -->
+                                    <g class="cursor-pointer" onclick="selectHeroNode('Landi Kotal Bazar', 'Moderate Risk (64/100)', '52% Storage • High urban demand', '#F4B942')">
+                                        <circle cx="245" cy="175" r="15" fill="#F4B942" class="pulse-node"/>
+                                        <circle cx="245" cy="175" r="7" fill="#F4B942" stroke="#FFFFFF" stroke-width="2"/>
+                                        <text x="245" y="153" text-anchor="middle" fill="#FFFFFF" font-size="11.5" font-weight="700">Landi Kotal Hub</text>
+                                        <text x="245" y="139" text-anchor="middle" fill="#FDE68A" font-size="9.5">Risk: 64/100</text>
+                                    </g>
+
+                                    <!-- Node 3: Michni Kandao (Normal - Aqua/Green) -->
+                                    <g class="cursor-pointer" onclick="selectHeroNode('Michni Kandao', 'Normal (28/100)', '78% Storage • Stable spring flow', '#52D6C8')">
+                                        <circle cx="330" cy="225" r="13" fill="#52D6C8" class="pulse-node"/>
+                                        <circle cx="330" cy="225" r="6" fill="#52D6C8" stroke="#FFFFFF" stroke-width="2"/>
+                                        <text x="330" y="249" text-anchor="middle" fill="#F8FAFC" font-size="11" font-weight="600">Michni Kandao</text>
+                                        <text x="330" y="262" text-anchor="middle" fill="#99F6E4" font-size="9.5">Risk: 28/100</text>
+                                    </g>
+
+                                    <!-- Node 4: Sultankhel (Moderate Risk - Yellow) -->
+                                    <g class="cursor-pointer" onclick="selectHeroNode('Sultankhel', 'Moderate Risk (58/100)', '56% Storage • Tube-well drop noted', '#F4B942')">
+                                        <circle cx="395" cy="255" r="13" fill="#F4B942" class="pulse-node"/>
+                                        <circle cx="395" cy="255" r="6" fill="#F4B942" stroke="#FFFFFF" stroke-width="2"/>
+                                        <text x="395" y="279" text-anchor="middle" fill="#F8FAFC" font-size="11" font-weight="600">Sultankhel</text>
+                                        <text x="395" y="292" text-anchor="middle" fill="#FDE68A" font-size="9.5">Risk: 58/100</text>
+                                    </g>
+
+                                    <!-- Node 5: Loe Shalman (High Risk - Red) -->
+                                    <g class="cursor-pointer" onclick="selectHeroNode('Loe Shalman', 'High Risk (79/100)', '31% Storage • Rainfall deficit', '#E45858')">
+                                        <circle cx="470" cy="155" r="14" fill="#E45858" class="pulse-node"/>
+                                        <circle cx="470" cy="155" r="6.5" fill="#E45858" stroke="#FFFFFF" stroke-width="2"/>
+                                        <text x="470" y="135" text-anchor="middle" fill="#F8FAFC" font-size="11" font-weight="600">Loe Shalman</text>
+                                        <text x="470" y="122" text-anchor="middle" fill="#FCA5A5" font-size="9.5">Risk: 79/100</text>
+                                    </g>
+                                </svg>
+                            </div>
+
+                            <!-- Interactive Node Readout Bar -->
+                            <div class="mt-4 p-3.5 rounded-xl bg-white/5 border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                <div class="flex items-center gap-2.5">
+                                    <span id="hero-node-dot" class="w-3 h-3 rounded-full bg-warnYellow shrink-0"></span>
+                                    <div>
+                                        <div class="text-xs font-semibold text-white" id="hero-node-title">Landi Kotal Bazar — Moderate Risk (64/100)</div>
+                                        <div class="text-[11px] text-slate-300" id="hero-node-desc">52% Storage • High urban demand (Click any node above to inspect)</div>
+                                    </div>
+                                </div>
+                                <button onclick="switchTopMode('dashboard', 'map')" class="text-xs font-semibold text-aqua hover:underline shrink-0 flex items-center gap-1">
+                                    <span>Open Live Map</span>
+                                    <i data-lucide="external-link" class="w-3 h-3"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- PROBLEM SECTION -->
+        <section class="py-16 lg:py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="max-w-2xl">
+                <span class="text-xs font-bold uppercase tracking-wider text-waterBlue">The Challenge in Khyber</span>
+                <h2 class="text-2xl sm:text-3xl font-bold text-deepNavy mt-2">Water Shortages Should Never Come as a Surprise.</h2>
+                <p class="text-slate-600 mt-3 text-sm sm:text-base">
+                    Mountain communities around Landi Kotal rely on seasonal rainfall, springs, and shared tanks. Without early intelligence, small supply drops escalate into acute emergencies.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-10">
+                <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs hover:border-waterBlue/40 transition">
+                    <div class="w-11 h-11 rounded-xl bg-dangerRed/10 text-dangerRed flex items-center justify-center mb-4">
+                        <i data-lucide="clock-alert" class="w-5 h-5"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-deepNavy">1. Delayed Shortage Reporting</h3>
+                    <p class="text-sm text-slate-600 mt-2 leading-relaxed">
+                        By the time dry tanks or broken pipelines reach district authorities, families have already endured days of severe water scarcity.
+                    </p>
+                </div>
+
+                <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs hover:border-waterBlue/40 transition">
+                    <div class="w-11 h-11 rounded-xl bg-warnYellow/15 text-amber-700 flex items-center justify-center mb-4">
+                        <i data-lucide="radar" class="w-5 h-5"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-deepNavy">2. Limited Local Monitoring</h3>
+                    <p class="text-sm text-slate-600 mt-2 leading-relaxed">
+                        Remote villages like Loe Shalman and Michni Kandao lack continuous telemetry, leaving reservoir depletion undetected until critical thresholds.
+                    </p>
+                </div>
+
+                <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs hover:border-waterBlue/40 transition">
+                    <div class="w-11 h-11 rounded-xl bg-waterBlue/10 text-waterBlue flex items-center justify-center mb-4">
+                        <i data-lucide="message-square-warning" class="w-5 h-5"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-deepNavy">3. Fragmented Community Info</h3>
+                    <p class="text-sm text-slate-600 mt-2 leading-relaxed">
+                        Residents lack an accessible, multilingual channel in Pashto, Urdu, and English to share observations and receive actionable conservation guidance.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- HOW AAB AI WORKS -->
+        <section class="py-16 bg-white border-y border-slate-200/80">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center max-w-2xl mx-auto">
+                    <span class="text-xs font-bold uppercase tracking-wider text-waterBlue">System Architecture</span>
+                    <h2 class="text-2xl sm:text-3xl font-bold text-deepNavy mt-2">How AAB AI Works</h2>
+                    <p class="text-slate-600 mt-2 text-sm sm:text-base">A closed-loop intelligence pipeline combining human voice reports with environmental forecasting.</p>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-12">
+                    <div class="p-6 rounded-2xl bg-lightBg border border-slate-200/70 relative">
+                        <div class="w-8 h-8 rounded-lg bg-deepNavy text-aqua font-heading font-bold text-sm flex items-center justify-center mb-4">01</div>
+                        <h3 class="text-lg font-bold text-deepNavy">Collect</h3>
+                        <p class="text-sm text-slate-600 mt-2">Gather community voice and text water reports in Pashto, Urdu, and English alongside local storage observations.</p>
+                    </div>
+
+                    <div class="p-6 rounded-2xl bg-lightBg border border-slate-200/70 relative">
+                        <div class="w-8 h-8 rounded-lg bg-deepNavy text-aqua font-heading font-bold text-sm flex items-center justify-center mb-4">02</div>
+                        <h3 class="text-lg font-bold text-deepNavy">Analyze</h3>
+                        <p class="text-sm text-slate-600 mt-2">AI correlates verified community reports with rainfall deficits, temperature spikes, and historical depletion rates.</p>
+                    </div>
+
+                    <div class="p-6 rounded-2xl bg-lightBg border border-slate-200/70 relative">
+                        <div class="w-8 h-8 rounded-lg bg-deepNavy text-aqua font-heading font-bold text-sm flex items-center justify-center mb-4">03</div>
+                        <h3 class="text-lg font-bold text-deepNavy">Predict</h3>
+                        <p class="text-sm text-slate-600 mt-2">Generate transparent 14-day village shortage risk scores (0–100) before tanks run completely dry.</p>
+                    </div>
+
+                    <div class="p-6 rounded-2xl bg-lightBg border border-slate-200/70 relative">
+                        <div class="w-8 h-8 rounded-lg bg-deepNavy text-aqua font-heading font-bold text-sm flex items-center justify-center mb-4">04</div>
+                        <h3 class="text-lg font-bold text-deepNavy">Alert</h3>
+                        <p class="text-sm text-slate-600 mt-2">Notify households, farmers, and local water committees with clear early warnings and water-saving actions.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- IMPACT SECTION -->
+        <section class="py-16 lg:py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-10">
+                <div>
+                    <span class="text-xs font-bold uppercase tracking-wider text-waterBlue">Stakeholder Value</span>
+                    <h2 class="text-2xl sm:text-3xl font-bold text-deepNavy mt-2">Designed for Every Water Stakeholder</h2>
+                </div>
+                <span class="text-xs text-slate-500">Pilot Scope: Landi Kotal Tehsil, District Khyber</span>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs">
+                    <i data-lucide="users" class="w-6 h-6 text-waterBlue mb-3"></i>
+                    <h3 class="font-bold text-deepNavy text-base">Rural Communities</h3>
+                    <p class="text-xs sm:text-sm text-slate-600 mt-2 leading-relaxed">Equips village elders and residents with a direct voice to flag broken pumps and drying springs early.</p>
+                </div>
+
+                <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs">
+                    <i data-lucide="sprout" class="w-6 h-6 text-emerald-600 mb-3"></i>
+                    <h3 class="font-bold text-deepNavy text-base">Local Farmers</h3>
+                    <p class="text-xs sm:text-sm text-slate-600 mt-2 leading-relaxed">Helps small-scale growers plan irrigation schedules around forecasted dry spells and reservoir levels.</p>
+                </div>
+
+                <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs">
+                    <i data-lucide="home" class="w-6 h-6 text-aqua mb-3"></i>
+                    <h3 class="font-bold text-deepNavy text-base">Households</h3>
+                    <p class="text-xs sm:text-sm text-slate-600 mt-2 leading-relaxed">Provides timely storage advisories and contamination alerts to protect family health and daily supply.</p>
+                </div>
+
+                <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs">
+                    <i data-lucide="building-2" class="w-6 h-6 text-deepNavy mb-3"></i>
+                    <h3 class="font-bold text-deepNavy text-base">Water Authorities</h3>
+                    <p class="text-xs sm:text-sm text-slate-600 mt-2 leading-relaxed">Prioritizes water tanker dispatch and infrastructure repairs using verified, geo-tagged risk data.</p>
+                </div>
+            </div>
+
+            <!-- CALL TO ACTION BANNER -->
+            <div class="mt-16 rounded-2xl bg-deepNavy p-8 sm:p-12 text-white flex flex-col lg:flex-row items-center justify-between gap-8 border border-slate-800">
+                <div class="space-y-2 text-center lg:text-left max-w-xl">
+                    <h2 class="text-2xl sm:text-3xl font-bold">Let's Build a Water-Secure Future Together.</h2>
+                    <p class="text-slate-300 text-sm sm:text-base">Join community volunteers, researchers, and water stewards piloting AAB AI across District Khyber.</p>
+                </div>
+                <div class="flex flex-wrap justify-center gap-3 shrink-0">
+                    <button onclick="openAuthModal()" class="px-6 py-3.5 rounded-xl bg-aqua hover:bg-[#43c2b4] text-deepNavy font-bold text-sm transition shadow-sm">
+                        Join the AAB AI Community
+                    </button>
+                    <button onclick="switchTopMode('dashboard', 'overview')" class="px-6 py-3.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-semibold text-sm border border-white/15 transition">
+                        Launch Dashboard
+                    </button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- ==================== VIEW 2: MAIN AI INTELLIGENCE DASHBOARD ==================== -->
+    <div id="view-dashboard" class="hidden flex-1 flex relative">
+        <!-- Collapsible Sidebar -->
+        <aside id="dashboard-sidebar" class="w-64 bg-deepNavy text-white shrink-0 flex flex-col justify-between transition-all duration-300 border-r border-slate-800 z-30">
+            <div>
+                <!-- Sidebar Toggle Header -->
+                <div class="h-14 px-4 flex items-center justify-between border-b border-white/10">
+                    <span class="sidebar-label text-xs font-bold uppercase tracking-wider text-aqua">Intelligence Menu</span>
+                    <button onclick="toggleSidebar()" class="p-1.5 rounded-lg hover:bg-white/10 text-slate-300" title="Collapse Sidebar">
+                        <i data-lucide="panel-left-close" id="sidebar-toggle-icon" class="w-4 h-4"></i>
+                    </button>
+                </div>
+
+                <!-- Navigation Items -->
+                <nav class="p-3 space-y-1">
+                    <button onclick="switchDashTab('overview')" data-tab="overview" class="dash-nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium bg-waterBlue text-white transition">
+                        <i data-lucide="layout-grid" class="w-4 h-4 shrink-0"></i>
+                        <span class="sidebar-label truncate">Overview</span>
+                    </button>
+                    <button onclick="switchDashTab('monitoring')" data-tab="monitoring" class="dash-nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:bg-white/10 hover:text-white transition">
+                        <i data-lucide="activity" class="w-4 h-4 shrink-0"></i>
+                        <span class="sidebar-label truncate">Water Monitoring</span>
+                    </button>
+                    <button onclick="switchDashTab('predictions')" data-tab="predictions" class="dash-nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:bg-white/10 hover:text-white transition">
+                        <i data-lucide="brain-circuit" class="w-4 h-4 shrink-0"></i>
+                        <span class="sidebar-label truncate">AI Predictions</span>
+                    </button>
+                    <button onclick="switchDashTab('reports')" data-tab="reports" class="dash-nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:bg-white/10 hover:text-white transition">
+                        <i data-lucide="mic" class="w-4 h-4 shrink-0"></i>
+                        <span class="sidebar-label truncate">Community Reports</span>
+                    </button>
+                    <button onclick="switchDashTab('map')" data-tab="map" class="dash-nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:bg-white/10 hover:text-white transition">
+                        <i data-lucide="map" class="w-4 h-4 shrink-0"></i>
+                        <span class="sidebar-label truncate">Water Risk Map</span>
+                    </button>
+                    <button onclick="switchDashTab('alerts')" data-tab="alerts" class="dash-nav-btn w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:bg-white/10 hover:text-white transition">
+                        <span class="flex items-center gap-3 truncate">
+                            <i data-lucide="bell-ring" class="w-4 h-4 shrink-0"></i>
+                            <span class="sidebar-label truncate">Alerts & Notifications</span>
+                        </span>
+                        <span id="sidebar-unread-badge" class="sidebar-label px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-dangerRed text-white">3</span>
+                    </button>
+                    <button onclick="switchDashTab('analytics')" data-tab="analytics" class="dash-nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:bg-white/10 hover:text-white transition">
+                        <i data-lucide="bar-chart-3" class="w-4 h-4 shrink-0"></i>
+                        <span class="sidebar-label truncate">Analytics</span>
+                    </button>
+                    <button onclick="switchDashTab('settings')" data-tab="settings" class="dash-nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:bg-white/10 hover:text-white transition">
+                        <i data-lucide="settings" class="w-4 h-4 shrink-0"></i>
+                        <span class="sidebar-label truncate">Settings</span>
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Pilot Disclaimer Footer in Sidebar -->
+            <div class="p-4 border-t border-white/10 sidebar-label">
+                <div class="p-3 rounded-xl bg-white/5 border border-white/10 text-[11px] text-slate-300 space-y-1">
+                    <div class="font-semibold text-aqua flex items-center gap-1.5">
+                        <i data-lucide="info" class="w-3.5 h-3.5"></i> Pilot Simulation
+                    </div>
+                    <p class="leading-relaxed text-slate-400">All village telemetry & AI scores are simulated Demo Data for Landi Kotal.</p>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Dashboard Main Content Canvas -->
+        <div class="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto space-y-6">
+            
+            <!-- Mobile Tab Quick Bar (for small screens) -->
+            <div class="flex md:hidden overflow-x-auto gap-2 pb-2 border-b border-slate-200">
+                <button onclick="switchDashTab('overview')" class="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-xs font-semibold shrink-0">Overview</button>
+                <button onclick="switchDashTab('monitoring')" class="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-xs font-semibold shrink-0">Monitoring</button>
+                <button onclick="switchDashTab('predictions')" class="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-xs font-semibold shrink-0">AI Forecast</button>
+                <button onclick="switchDashTab('reports')" class="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-xs font-semibold shrink-0">Report Issue</button>
+                <button onclick="switchDashTab('map')" class="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-xs font-semibold shrink-0">Risk Map</button>
+                <button onclick="switchDashTab('alerts')" class="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-xs font-semibold shrink-0">Alerts</button>
+                <button onclick="switchDashTab('analytics')" class="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-xs font-semibold shrink-0">Analytics</button>
+            </div>
+
+            <!-- ==================== TAB 1: OVERVIEW ==================== -->
+            <section id="dash-tab-overview" class="dash-tab space-y-6">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h1 class="text-xl sm:text-2xl font-bold text-deepNavy">Welcome to AAB AI Intelligence Center</h1>
+                            <span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-100 text-amber-800 border border-amber-200">Demo Data</span>
+                        </div>
+                        <p class="text-xs sm:text-sm text-slate-500 mt-1">Regional Overview: Landi Kotal & Surrounding Villages, District Khyber</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="switchDashTab('reports')" class="px-4 py-2 rounded-xl bg-waterBlue hover:bg-[#127391] text-white text-xs sm:text-sm font-semibold transition flex items-center gap-1.5">
+                            <i data-lucide="plus-circle" class="w-4 h-4"></i> Submit Report
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 4 KPI Cards -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-semibold text-slate-500">Total Monitored Locations</span>
+                            <div class="w-8 h-8 rounded-lg bg-waterBlue/10 text-waterBlue flex items-center justify-center">
+                                <i data-lucide="map-pin" class="w-4 h-4"></i>
+                            </div>
+                        </div>
+                        <div class="mt-3 flex items-baseline gap-2">
+                            <span class="text-2xl font-heading font-bold text-deepNavy" id="kpi-locations">5</span>
+                            <span class="text-xs text-slate-500">Demo Villages</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-semibold text-slate-500">Avg. Water Availability</span>
+                            <div class="w-8 h-8 rounded-lg bg-aqua/15 text-teal-700 flex items-center justify-center">
+                                <i data-lucide="droplet" class="w-4 h-4"></i>
+                            </div>
+                        </div>
+                        <div class="mt-3 flex items-baseline gap-2">
+                            <span class="text-2xl font-heading font-bold text-deepNavy" id="kpi-avg-water">50.2%</span>
+                            <span class="text-xs text-amber-600 font-medium">Simulated Avg</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-semibold text-slate-500">High-Risk Locations</span>
+                            <div class="w-8 h-8 rounded-lg bg-dangerRed/10 text-dangerRed flex items-center justify-center">
+                                <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+                            </div>
+                        </div>
+                        <div class="mt-3 flex items-baseline gap-2">
+                            <span class="text-2xl font-heading font-bold text-dangerRed" id="kpi-high-risk">2</span>
+                            <span class="text-xs text-slate-500">Score &ge; 70/100</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-semibold text-slate-500">Pending Community Reports</span>
+                            <div class="w-8 h-8 rounded-lg bg-warnYellow/15 text-amber-700 flex items-center justify-center">
+                                <i data-lucide="clipboard-list" class="w-4 h-4"></i>
+                            </div>
+                        </div>
+                        <div class="mt-3 flex items-baseline gap-2">
+                            <span class="text-2xl font-heading font-bold text-deepNavy" id="kpi-pending-reports">2</span>
+                            <span class="text-xs text-waterBlue font-medium cursor-pointer hover:underline" onclick="handleAdminSwitch()">Review Queue &rarr;</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts Row -->
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    <div class="lg:col-span-7 bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-xs">
+                        <div class="flex items-center justify-between mb-4">
+                            <div>
+                                <h3 class="text-base font-bold text-deepNavy">Water Availability Trends (7-Day Demo)</h3>
+                                <p class="text-xs text-slate-500">Estimated storage capacity % across Landi Kotal pilot villages</p>
+                            </div>
+                            <span class="text-[11px] px-2 py-0.5 rounded bg-slate-100 text-slate-600 font-medium">Demo Data</span>
+                        </div>
+                        <div class="h-64">
+                            <canvas id="overviewLineChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="lg:col-span-5 bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-xs">
+                        <div class="flex items-center justify-between mb-4">
+                            <div>
+                                <h3 class="text-base font-bold text-deepNavy">Community Reports by Village</h3>
+                                <p class="text-xs text-slate-500">Submitted issue volume (Verified + Pending)</p>
+                            </div>
+                            <span class="text-[11px] px-2 py-0.5 rounded bg-slate-100 text-slate-600 font-medium">Demo Data</span>
+                        </div>
+                        <div class="h-64">
+                            <canvas id="overviewBarChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Activity Feed -->
+                <div class="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-xs">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-base font-bold text-deepNavy">Recent Community Reports & Verified Alerts</h3>
+                        <button onclick="switchDashTab('alerts')" class="text-xs font-semibold text-waterBlue hover:underline">View All Alerts</button>
+                    </div>
+                    <div id="overview-activity-list" class="divide-y divide-slate-100">
+                        <!-- Rendered via JS -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- ==================== TAB 2: WATER MONITORING ==================== -->
+            <section id="dash-tab-monitoring" class="dash-tab hidden space-y-6">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h1 class="text-xl sm:text-2xl font-bold text-deepNavy">Village Water Monitoring</h1>
+                            <span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-100 text-amber-800 border border-amber-200">Simulated Demo Data</span>
+                        </div>
+                        <p class="text-xs sm:text-sm text-slate-500 mt-1">Baseline environmental & community-observed metrics across 5 Landi Kotal pilot settlements.</p>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-lightBg border-b border-slate-200/80 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                                    <th class="py-3.5 px-4">Village / Location</th>
+                                    <th class="py-3.5 px-4">Water Availability</th>
+                                    <th class="py-3.5 px-4">7-Day Rainfall</th>
+                                    <th class="py-3.5 px-4">Avg Temp</th>
+                                    <th class="py-3.5 px-4">Groundwater Depth</th>
+                                    <th class="py-3.5 px-4">AI Risk Status</th>
+                                    <th class="py-3.5 px-4 text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="monitoring-table-body" class="divide-y divide-slate-100 text-sm">
+                                <!-- Rendered via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ==================== TAB 3: AI PREDICTION CENTER ==================== -->
+            <section id="dash-tab-predictions" class="dash-tab hidden space-y-6">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h1 class="text-xl sm:text-2xl font-bold text-deepNavy">AI Water Intelligence & Forecasting</h1>
+                            <span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-waterBlue/10 text-waterBlue border border-waterBlue/20">Simulated Model • Demo Data</span>
+                        </div>
+                        <p class="text-xs sm:text-sm text-slate-500 mt-1">Interactive multi-factor shortage risk estimator combining storage, weather, and community signals.</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    <!-- Left Control Panel: Village & Parameter Simulator -->
+                    <div class="lg:col-span-5 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-5">
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Select Pilot Village</label>
+                            <select id="pred-village-select" onchange="loadVillageIntoPredictor()" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-lightBg text-sm font-semibold text-deepNavy focus:outline-none focus:border-waterBlue">
+                                <!-- Populated via JS -->
+                            </select>
+                        </div>
+
+                        <div class="pt-2 border-t border-slate-100 space-y-4">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Model Input Parameters</span>
+                                <button onclick="loadVillageIntoPredictor()" class="text-xs text-waterBlue font-semibold hover:underline">Reset to Baseline</button>
+                            </div>
+
+                            <div>
+                                <div class="flex justify-between text-xs font-medium mb-1">
+                                    <span class="text-slate-600">Recent Water Availability (%)</span>
+                                    <span class="font-bold text-deepNavy" id="val-avail">52%</span>
+                                </div>
+                                <input type="range" id="input-avail" min="5" max="100" value="52" oninput="runAIPrediction()" class="w-full accent-waterBlue cursor-pointer">
+                            </div>
+
+                            <div>
+                                <div class="flex justify-between text-xs font-medium mb-1">
+                                    <span class="text-slate-600">14-Day Cumulative Rainfall (mm)</span>
+                                    <span class="font-bold text-deepNavy" id="val-rain">8 mm</span>
+                                </div>
+                                <input type="range" id="input-rain" min="0" max="60" value="8" oninput="runAIPrediction()" class="w-full accent-waterBlue cursor-pointer">
+                            </div>
+
+                            <div>
+                                <div class="flex justify-between text-xs font-medium mb-1">
+                                    <span class="text-slate-600">Ambient Temperature (°C)</span>
+                                    <span class="font-bold text-deepNavy" id="val-temp">29°C</span>
+                                </div>
+                                <input type="range" id="input-temp" min="5" max="45" value="29" oninput="runAIPrediction()" class="w-full accent-waterBlue cursor-pointer">
+                            </div>
+
+                            <div>
+                                <div class="flex justify-between text-xs font-medium mb-1">
+                                    <span class="text-slate-600">Recent Community Shortage Reports</span>
+                                    <span class="font-bold text-deepNavy" id="val-reps">14 reports</span>
+                                </div>
+                                <input type="range" id="input-reps" min="0" max="40" value="14" oninput="runAIPrediction()" class="w-full accent-waterBlue cursor-pointer">
+                            </div>
+                        </div>
+
+                        <div class="p-3.5 rounded-xl bg-lightBg border border-slate-200/80 text-xs text-slate-600 leading-relaxed">
+                            <strong class="text-deepNavy">Transparency Note:</strong> This interactive demo model uses weighted environmental heuristics (Storage 45%, Rainfall Deficit 25%, Community Reports 20%, Heat Evapotranspiration 10%) to demonstrate early-warning scoring.
+                        </div>
+                    </div>
+
+                    <!-- Right Output Panel: Risk Score, AI Explanation & Forecast Chart -->
+                    <div class="lg:col-span-7 space-y-6">
+                        <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs">
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-100">
+                                <div>
+                                    <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Forecast Horizon: Next 14 Days</span>
+                                    <h2 class="text-xl font-bold text-deepNavy mt-0.5" id="pred-result-village">Landi Kotal Bazar</h2>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <div class="text-right">
+                                        <div class="text-xs text-slate-500 font-medium">Estimated Risk Score</div>
+                                        <div class="text-3xl font-heading font-bold text-deepNavy"><span id="pred-score">64</span><span class="text-base text-slate-400 font-normal">/100</span></div>
+                                    </div>
+                                    <span id="pred-badge" class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-warnYellow/20 text-amber-800 border border-warnYellow/40">
+                                        Moderate Risk
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- AI Explanation -->
+                            <div class="mt-5 space-y-4">
+                                <div class="p-4 rounded-xl bg-lightBg border-l-4 border-waterBlue">
+                                    <div class="flex items-center gap-2 text-xs font-bold text-waterBlue uppercase tracking-wider mb-1">
+                                        <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> AI-Generated Assessment (Demo Analysis)
+                                    </div>
+                                    <p class="text-sm text-deepNavy leading-relaxed" id="pred-explanation">
+                                        Recent water observations indicate declining reservoir storage (52%) alongside low 14-day rainfall (8 mm). Continued monitoring and scheduled rationing are recommended.
+                                    </p>
+                                </div>
+
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div>
+                                        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Key Contributing Factors</h4>
+                                        <ul id="pred-factors" class="space-y-1.5 text-xs text-slate-700">
+                                            <!-- Populated via JS -->
+                                        </ul>
+                                    </div>
+                                    <div>
+                                        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Recommended Actions</h4>
+                                        <ul id="pred-actions" class="space-y-1.5 text-xs text-slate-700">
+                                            <!-- Populated via JS -->
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 14-Day Risk Trend Chart -->
+                        <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs">
+                            <div class="flex items-center justify-between mb-3">
+                                <h3 class="text-sm font-bold text-deepNavy">Projected 14-Day Shortage Risk Trajectory</h3>
+                                <span class="text-[11px] text-slate-500">Demo Forecast Curve</span>
+                            </div>
+                            <div class="h-52">
+                                <canvas id="predictionTrendChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ==================== TAB 4: COMMUNITY VOICE REPORTING ==================== -->
+            <section id="dash-tab-reports" class="dash-tab hidden space-y-6">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h1 class="text-xl sm:text-2xl font-bold text-deepNavy">Your Voice Can Help Protect Water.</h1>
+                        <span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-aqua/20 text-deepNavy">Pashto • Urdu • English</span>
+                    </div>
+                    <p class="text-xs sm:text-sm text-slate-500 mt-1">Submit local water shortages, leaks, or quality issues. All reports undergo community/admin verification.</p>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    <!-- Reporting Form -->
+                    <form id="community-report-form" onsubmit="submitCommunityReport(event)" class="lg:col-span-7 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-5">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 mb-1.5">Select Village *</label>
+                                <select id="rep-village" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-lightBg text-sm font-medium text-deepNavy focus:outline-none focus:border-waterBlue">
+                                    <option value="Landi Kotal Bazar">Landi Kotal Bazar</option>
+                                    <option value="Torkham Border Zone">Torkham Border Zone</option>
+                                    <option value="Michni Kandao">Michni Kandao</option>
+                                    <option value="Loe Shalman">Loe Shalman</option>
+                                    <option value="Sultankhel">Sultankhel</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 mb-1.5">Report Category *</label>
+                                <select id="rep-category" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-lightBg text-sm font-medium text-deepNavy focus:outline-none focus:border-waterBlue">
+                                    <option value="No water supply">No water supply</option>
+                                    <option value="Low water availability">Low water availability</option>
+                                    <option value="Water tank empty">Water tank empty</option>
+                                    <option value="Water leakage">Water leakage</option>
+                                    <option value="Contaminated water">Contaminated water</option>
+                                    <option value="Other water problems">Other water problems</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Multilingual Voice Input Bar -->
+                        <div class="p-4 rounded-xl bg-lightBg border border-slate-200 space-y-3">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <span class="text-xs font-bold text-deepNavy flex items-center gap-1.5">
+                                    <i data-lucide="languages" class="w-4 h-4 text-waterBlue"></i> Voice Reporting Language
+                                </span>
+                                <div class="flex items-center gap-1.5" id="voice-lang-group">
+                                    <button type="button" onclick="setVoiceLang('en-US', this)" class="voice-lang-btn px-2.5 py-1 rounded-lg text-xs font-semibold bg-deepNavy text-white">English</button>
+                                    <button type="button" onclick="setVoiceLang('ur-PK', this)" class="voice-lang-btn px-2.5 py-1 rounded-lg text-xs font-semibold bg-white border border-slate-300 text-slate-700">اردو (Urdu)</button>
+                                    <button type="button" onclick="setVoiceLang('ps-AF', this)" class="voice-lang-btn px-2.5 py-1 rounded-lg text-xs font-semibold bg-white border border-slate-300 text-slate-700">پښتو (Pashto)</button>
+                                </div>
+                            </div>
+
+                            <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+                                <button type="button" id="voice-record-btn" onclick="toggleVoiceRecording()" class="px-4 py-2.5 rounded-xl bg-dangerRed hover:bg-red-600 text-white text-xs font-bold flex items-center justify-center gap-2 transition shadow-xs">
+                                    <i data-lucide="mic" class="w-4 h-4"></i>
+                                    <span id="voice-btn-text">Start Voice Recording</span>
+                                </button>
+                                <span id="voice-status-text" class="text-xs text-slate-500">Tap to speak your report or use simulated multilingual transcription.</span>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 mb-1.5">Description (English, Urdu, or Pashto) *</label>
+                            <textarea id="rep-description" rows="3" required placeholder="Describe the water issue in your neighborhood or village..." class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm text-deepNavy focus:outline-none focus:border-waterBlue"></textarea>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 mb-1.5">Your Name / Household (Optional)</label>
+                                <input type="text" id="rep-reporter" placeholder="e.g. Tariq Afridi" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm text-deepNavy focus:outline-none focus:border-waterBlue">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 mb-1.5">Attach Photo Evidence (Optional)</label>
+                                <input type="file" id="rep-image" accept="image/*" onchange="previewReportImage(event)" class="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-waterBlue/10 file:text-waterBlue hover:file:bg-waterBlue/20">
+                            </div>
+                        </div>
+
+                        <div id="rep-image-preview-wrap" class="hidden">
+                            <img id="rep-image-preview" src="" alt="Attached preview" class="h-28 rounded-xl border border-slate-200 object-cover">
+                        </div>
+
+                        <button type="submit" class="w-full py-3 rounded-xl bg-waterBlue hover:bg-[#127391] text-white font-bold text-sm transition shadow-sm flex items-center justify-center gap-2">
+                            <i data-lucide="send" class="w-4 h-4"></i>
+                            <span>Submit Community Water Report</span>
+                        </button>
+                    </form>
+
+                    <!-- Right Column: Confirmation Banner & Recent Submissions -->
+                    <div class="lg:col-span-5 space-y-5">
+                        <!-- Submission Confirmation Card -->
+                        <div id="report-confirmation-card" class="hidden bg-emerald-50 border border-emerald-200 p-5 rounded-2xl space-y-2">
+                            <div class="flex items-center gap-2 text-emerald-800 font-bold text-sm">
+                                <i data-lucide="check-circle-2" class="w-5 h-5 text-emerald-600"></i>
+                                <span>Report Submitted Successfully!</span>
+                            </div>
+                            <p class="text-xs text-emerald-700 leading-relaxed">
+                                Reference ID: <strong id="conf-report-id" class="font-mono bg-white px-2 py-0.5 rounded border border-emerald-200">AAB-2026-8492</strong>. Your report has entered the verification queue before updating AI risk models.
+                            </p>
+                            <button onclick="handleAdminSwitch()" class="text-xs font-bold text-emerald-800 underline pt-1">Open Admin Portal to Verify Now &rarr;</button>
+                        </div>
+
+                        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-3">
+                            <div class="flex items-center justify-between">
+                                <h3 class="text-sm font-bold text-deepNavy">Recent Community Feed</h3>
+                                <span class="text-[11px] text-slate-400">Live Session + Demo</span>
+                            </div>
+                            <div id="community-reports-feed" class="space-y-3 max-h-[420px] overflow-y-auto pr-1">
+                                <!-- Rendered via JS -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ==================== TAB 5: INTERACTIVE WATER RISK MAP ==================== -->
+            <section id="dash-tab-map" class="dash-tab hidden space-y-5">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h1 class="text-xl sm:text-2xl font-bold text-deepNavy">Interactive Water Risk Map</h1>
+                            <span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-100 text-amber-800 border border-amber-200">Demo Village Telemetry</span>
+                        </div>
+                        <p class="text-xs sm:text-sm text-slate-500 mt-1">Landi Kotal & Surrounding Villages, District Khyber (OpenStreetMap + Leaflet)</p>
+                    </div>
+
+                    <!-- Search & Risk Filter Controls -->
+                    <div class="flex flex-wrap items-center gap-2">
+                        <div class="relative">
+                            <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+                            <input type="text" id="map-search-input" onkeyup="filterMapMarkers()" placeholder="Search village..." class="pl-8 pr-3 py-1.5 rounded-xl border border-slate-300 bg-white text-xs text-deepNavy focus:outline-none focus:border-waterBlue">
+                        </div>
+                        <div class="flex items-center bg-white p-1 rounded-xl border border-slate-200 text-xs font-semibold">
+                            <button onclick="setMapRiskFilter('all', this)" class="map-filter-btn px-2.5 py-1 rounded-lg bg-deepNavy text-white">All</button>
+                            <button onclick="setMapRiskFilter('High Risk', this)" class="map-filter-btn px-2.5 py-1 rounded-lg text-dangerRed hover:bg-red-50">High Risk</button>
+                            <button onclick="setMapRiskFilter('Moderate Risk', this)" class="map-filter-btn px-2.5 py-1 rounded-lg text-amber-700 hover:bg-amber-50">Moderate</button>
+                            <button onclick="setMapRiskFilter('Normal', this)" class="map-filter-btn px-2.5 py-1 rounded-lg text-emerald-700 hover:bg-emerald-50">Normal</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Map + Side Detail Panel Grid -->
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+                    <div class="lg:col-span-8 bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden relative">
+                        <div id="khyber-leaflet-map" class="w-full h-[460px]"></div>
+                        <!-- Legend Overlay -->
+                        <div class="absolute bottom-3 left-3 z-20 bg-white/95 backdrop-blur-xs px-3 py-2 rounded-xl border border-slate-200 shadow-xs flex items-center gap-4 text-[11px] font-semibold">
+                            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Normal</span>
+                            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-warnYellow"></span> Moderate Risk</span>
+                            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-dangerRed"></span> High Risk</span>
+                        </div>
+                    </div>
+
+                    <!-- Village Detail Info Panel -->
+                    <div class="lg:col-span-4 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
+                        <div id="map-detail-panel" class="space-y-4">
+                            <!-- Populated on marker click -->
+                        </div>
+                        <div class="pt-4 mt-4 border-t border-slate-100 text-[11px] text-slate-400">
+                            Disclaimer: Coordinates approximate Landi Kotal settlements. Measurements shown are simulated Demo Data.
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ==================== TAB 6: SMART ALERT CENTER ==================== -->
+            <section id="dash-tab-alerts" class="dash-tab hidden space-y-6">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <h1 class="text-xl sm:text-2xl font-bold text-deepNavy">Smart Alert Center</h1>
+                        <p class="text-xs sm:text-sm text-slate-500 mt-1">Early shortage warnings, risk escalations, and verified community updates.</p>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <button onclick="filterAlerts('all', this)" class="alert-filter-btn px-3 py-1.5 rounded-xl bg-deepNavy text-white text-xs font-semibold">All Alerts</button>
+                        <button onclick="filterAlerts('High Risk', this)" class="alert-filter-btn px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-700 text-xs font-semibold">High Risk</button>
+                        <button onclick="filterAlerts('Moderate Risk', this)" class="alert-filter-btn px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-700 text-xs font-semibold">Moderate</button>
+                        <button onclick="markAllAlertsRead()" class="px-3 py-1.5 rounded-xl bg-waterBlue/10 text-waterBlue text-xs font-bold hover:bg-waterBlue/20">Mark All Read</button>
+                    </div>
+                </div>
+
+                <div id="alerts-container" class="space-y-3">
+                    <!-- Rendered via JS -->
+                </div>
+            </section>
+
+            <!-- ==================== TAB 7: ANALYTICS & REPORTS ==================== -->
+            <section id="dash-tab-analytics" class="dash-tab hidden space-y-6">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h1 class="text-xl sm:text-2xl font-bold text-deepNavy">Analytics & Exportable Reports</h1>
+                            <span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-100 text-amber-800">Demo Data</span>
+                        </div>
+                        <p class="text-xs sm:text-sm text-slate-500 mt-1">Comparative rainfall, storage resilience, and risk distribution across District Khyber.</p>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-2.5">
+                        <select id="analytics-range-filter" onchange="updateAnalyticsCharts()" class="px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs font-semibold text-deepNavy">
+                            <option value="30d">Last 30 Days (Demo)</option>
+                            <option value="90d">Last Quarter (Demo)</option>
+                        </select>
+                        <button onclick="exportCSVReport()" class="px-4 py-2 rounded-xl bg-deepNavy hover:bg-slate-800 text-white text-xs font-semibold flex items-center gap-2 shadow-xs transition">
+                            <i data-lucide="download" class="w-3.5 h-3.5 text-aqua"></i>
+                            <span>Download CSV Report</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    <div class="lg:col-span-8 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs">
+                        <h3 class="text-base font-bold text-deepNavy mb-1">Village Comparison: Water Storage (%) vs Rainfall (mm)</h3>
+                        <p class="text-xs text-slate-500 mb-4">Simulated hydrological correlation across Landi Kotal pilot nodes</p>
+                        <div class="h-72">
+                            <canvas id="analyticsComparisonChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="lg:col-span-4 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs">
+                        <h3 class="text-base font-bold text-deepNavy mb-1">Village Risk Distribution</h3>
+                        <p class="text-xs text-slate-500 mb-4">Current classification breakdown</p>
+                        <div class="h-64 flex items-center justify-center">
+                            <canvas id="analyticsDoughnutChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ==================== TAB 8: SETTINGS ==================== -->
+            <section id="dash-tab-settings" class="dash-tab hidden space-y-6">
+                <div>
+                    <h1 class="text-xl sm:text-2xl font-bold text-deepNavy">Platform Settings & Preferences</h1>
+                    <p class="text-xs sm:text-sm text-slate-500 mt-1">Configure community alert channels and demo environment state.</p>
+                </div>
+
+                <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs max-w-2xl space-y-5">
+                    <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+                        <div>
+                            <div class="text-sm font-bold text-deepNavy">Early Warning SMS / WhatsApp Alerts</div>
+                            <div class="text-xs text-slate-500">Receive notifications when village risk exceeds 70/100</div>
+                        </div>
+                        <input type="checkbox" checked class="w-4 h-4 accent-waterBlue">
+                    </div>
+
+                    <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+                        <div>
+                            <div class="text-sm font-bold text-deepNavy">Preferred Alert Language</div>
+                            <div class="text-xs text-slate-500">Used for community broadcast summaries</div>
+                        </div>
+                        <select class="px-3 py-1.5 rounded-xl border border-slate-300 text-xs font-semibold">
+                            <option>English + Pashto (پښتو)</option>
+                            <option>Urdu (اردو)</option>
+                            <option>English Only</option>
+                        </select>
+                    </div>
+
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <div class="text-sm font-bold text-deepNavy">Reset Demo Simulation Data</div>
+                            <div class="text-xs text-slate-500">Restore default village scores and initial sample reports</div>
+                        </div>
+                        <button onclick="resetDemoState()" class="px-3.5 py-2 rounded-xl border border-slate-300 hover:bg-slate-50 text-xs font-semibold text-deepNavy">
+                            Reset Demo State
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- ==================== VIEW 3: ADMIN GOVERNANCE PORTAL ==================== -->
+    <div id="view-admin" class="hidden flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+        <div class="bg-deepNavy text-white p-6 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 border border-slate-800">
+            <div>
+                <div class="flex items-center gap-2">
+                    <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-aqua text-deepNavy">ADMIN GOVERNANCE</span>
+                    <span class="text-xs text-slate-300">Role: District Water Coordinator (Demo)</span>
+                </div>
+                <h1 class="text-xl sm:text-2xl font-bold mt-1">AAB AI Administrative Verification & Telemetry Control</h1>
+            </div>
+            <div class="flex items-center gap-2.5">
+                <button onclick="exportCSVReport()" class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-semibold flex items-center gap-1.5">
+                    <i data-lucide="download" class="w-3.5 h-3.5 text-aqua"></i> Export Audit CSV
+                </button>
+                <button onclick="switchTopMode('dashboard', 'overview')" class="px-4 py-2 rounded-xl bg-waterBlue hover:bg-[#127391] text-xs font-semibold">
+                    Back to Dashboard
+                </button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <!-- Pending Reports Verification Queue -->
+            <div class="lg:col-span-7 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-base font-bold text-deepNavy">Community Report Verification Queue</h2>
+                        <p class="text-xs text-slate-500">Approve valid reports to integrate into AI risk forecasting and public alerts.</p>
+                    </div>
+                    <span id="admin-pending-count" class="px-2.5 py-1 rounded-full text-xs font-bold bg-warnYellow/20 text-amber-800">2 Pending</span>
+                </div>
+
+                <div id="admin-reports-list" class="space-y-3">
+                    <!-- Rendered via JS -->
+                </div>
+            </div>
+
+            <!-- Manage Village Observations -->
+            <div class="lg:col-span-5 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
+                <div>
+                    <h2 class="text-base font-bold text-deepNavy">Update Village Water Observations</h2>
+                    <p class="text-xs text-slate-500">Adjust simulated storage %; Risk Map and AI scores update automatically.</p>
+                </div>
+
+                <div id="admin-villages-editor" class="space-y-3">
+                    <!-- Rendered via JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== FLOATING AAB WATER ASSISTANT WIDGET ==================== -->
+    <div class="fixed bottom-5 right-5 z-50">
+        <!-- Chat Window -->
+        <div id="assistant-window" class="hidden mb-3 w-[340px] sm:w-[380px] bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col">
+            <div class="bg-deepNavy text-white p-4 flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-lg bg-aqua/20 text-aqua flex items-center justify-center">
+                        <i data-lucide="bot" class="w-4 h-4"></i>
+                    </div>
+                    <div>
+                        <div class="text-sm font-bold flex items-center gap-1.5">
+                            <span>AAB Water Assistant</span>
+                        </div>
+                        <div class="text-[10px] text-aqua">Demo AI • English / اردو / پښتو</div>
+                    </div>
+                </div>
+                <button onclick="toggleAssistant()" class="text-slate-300 hover:text-white p-1">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <!-- Messages Area -->
+            <div id="assistant-messages" class="p-4 h-72 overflow-y-auto space-y-3 bg-lightBg text-xs">
+                <div class="bg-white p-3 rounded-xl border border-slate-200/80 text-deepNavy leading-relaxed shadow-2xs">
+                    <strong>Salam!</strong> I am the <em>AAB Water Assistant (Demo AI)</em>. Ask me about water risk in Landi Kotal villages, conservation tips, or how to report a shortage in English, Urdu, or Pashto.
+                </div>
+            </div>
+
+            <!-- Quick Prompt Chips -->
+            <div class="px-3 py-2 bg-white border-t border-slate-100 flex gap-1.5 overflow-x-auto">
+                <button onclick="askAssistantPreset('What is the water situation in Torkham & Landi Kotal?')" class="px-2.5 py-1 rounded-full bg-lightBg hover:bg-waterBlue/10 text-[11px] font-medium text-waterBlue border border-waterBlue/20 shrink-0">
+                    Village status?
+                </button>
+                <button onclick="askAssistantPreset('How can we save water during shortages?')" class="px-2.5 py-1 rounded-full bg-lightBg hover:bg-waterBlue/10 text-[11px] font-medium text-waterBlue border border-waterBlue/20 shrink-0">
+                    Save water tips
+                </button>
+                <button onclick="askAssistantPreset('پښتو: زما په کلي کې د اوبو وضعیت څنګه دی؟')" class="px-2.5 py-1 rounded-full bg-lightBg hover:bg-waterBlue/10 text-[11px] font-medium text-deepNavy border border-slate-200 shrink-0">
+                    پښتو مرسته
+                </button>
+                <button onclick="askAssistantPreset('اردو: پانی کی قلت کی اطلاع کیسے دیں؟')" class="px-2.5 py-1 rounded-full bg-lightBg hover:bg-waterBlue/10 text-[11px] font-medium text-deepNavy border border-slate-200 shrink-0">
+                    اردو رہنمائی
+                </button>
+            </div>
+
+            <!-- Input Form -->
+            <form onsubmit="handleAssistantSubmit(event)" class="p-3 bg-white border-t border-slate-200 flex items-center gap-2">
+                <input type="text" id="assistant-input" placeholder="Ask AAB Water Assistant..." class="flex-1 px-3 py-2 rounded-xl bg-lightBg border border-slate-200 text-xs text-deepNavy focus:outline-none focus:border-waterBlue">
+                <button type="submit" class="p-2 rounded-xl bg-waterBlue hover:bg-[#127391] text-white transition">
+                    <i data-lucide="send" class="w-4 h-4"></i>
+                </button>
+            </form>
+        </div>
+
+        <!-- Floating Trigger Button -->
+        <button onclick="toggleAssistant()" class="ml-auto flex items-center gap-2.5 px-4 py-3 rounded-full bg-deepNavy hover:bg-slate-800 text-white shadow-lg border border-slate-700 transition">
+            <span class="w-2.5 h-2.5 rounded-full bg-aqua animate-pulse"></span>
+            <i data-lucide="message-circle-question" class="w-5 h-5 text-aqua"></i>
+            <span class="text-xs font-semibold hidden sm:inline">AAB Water Assistant</span>
+        </button>
+    </div>
+
+    <!-- ==================== AUTH / COMMUNITY REGISTRATION MODAL ==================== -->
+    <div id="auth-modal" class="hidden fixed inset-0 z-50 bg-deepNavy/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-200 space-y-5">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-deepNavy text-aqua flex items-center justify-center">
+                        <i data-lucide="droplets" class="w-4 h-4"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-deepNavy">Join AAB AI Pilot</h3>
+                </div>
+                <button onclick="closeAuthModal()" class="text-slate-400 hover:text-deepNavy">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <p class="text-xs text-slate-600 leading-relaxed">
+                Register as a Community Water Steward or sign in with Demo Administrator credentials to verify reports in District Khyber.
+            </p>
+
+            <form onsubmit="submitAuthForm(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Full Name</label>
+                    <input type="text" id="auth-name" required value="Kamran Shinwari" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Village / Union Council</label>
+                    <select id="auth-village" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm bg-lightBg">
+                        <option>Landi Kotal Bazar</option>
+                        <option>Torkham Border Zone</option>
+                        <option>Michni Kandao</option>
+                        <option>Loe Shalman</option>
+                        <option>Sultankhel</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Access Role (Demo Auth)</label>
+                    <select id="auth-role" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm bg-lightBg">
+                        <option value="community">Community Member / Volunteer</option>
+                        <option value="admin">District Water Administrator</option>
+                    </select>
+                </div>
+                <button type="submit" class="w-full py-2.5 rounded-xl bg-waterBlue hover:bg-[#127391] text-white font-bold text-sm transition">
+                    Continue to Platform
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ==================== APPLICATION LOGIC ==================== -->
+    <script>
+        // -------------------- 1. INITIAL DEMO DATA --------------------
+        const INITIAL_VILLAGES = [
+            {
+                id: 'v1',
+                name: 'Landi Kotal Bazar',
+                lat: 34.0989,
+                lng: 71.1456,
+                availability: 52,
+                rainfall: 8,
+                temp: 29,
+                groundwaterDepth: '145 ft',
+                reportsCount: 14,
+                riskScore: 64,
+                riskLevel: 'Moderate Risk',
+                lastUpdated: '2026-11-12 14:30 PKT',
+                observations: 'Municipal overhead tank operating at half capacity; peak evening demand pressure.'
+            },
+            {
+                id: 'v2',
+                name: 'Torkham Border Zone',
+                lat: 34.1195,
+                lng: 71.0945,
+                availability: 34,
+                rainfall: 4,
+                temp: 31,
+                groundwaterDepth: '182 ft',
+                reportsCount: 23,
+                riskScore: 82,
+                riskLevel: 'High Risk',
+                lastUpdated: '2026-11-12 15:10 PKT',
+                observations: 'High transit population and low borehole recharge causing acute daytime shortages.'
+            },
+            {
+                id: 'v3',
+                name: 'Michni Kandao',
+                lat: 34.0842,
+                lng: 71.1210,
+                availability: 78,
+                rainfall: 16,
+                temp: 26,
+                groundwaterDepth: '98 ft',
+                reportsCount: 4,
+                riskScore: 28,
+                riskLevel: 'Normal',
+                lastUpdated: '2026-11-12 12:15 PKT',
+                observations: 'Natural hillside spring and community storage tank remain stable.'
+            },
+            {
+                id: 'v4',
+                name: 'Loe Shalman',
+                lat: 34.1450,
+                lng: 71.1780,
+                availability: 31,
+                rainfall: 3,
+                temp: 30,
+                groundwaterDepth: '195 ft',
+                reportsCount: 19,
+                riskScore: 79,
+                riskLevel: 'High Risk',
+                lastUpdated: '2026-11-12 13:45 PKT',
+                observations: 'Prolonged dry spell impacting gravity-fed channels and household wells.'
+            },
+            {
+                id: 'v5',
+                name: 'Sultankhel',
+                lat: 34.0725,
+                lng: 71.1680,
+                availability: 56,
+                rainfall: 9,
+                temp: 28,
+                groundwaterDepth: '132 ft',
+                reportsCount: 9,
+                riskScore: 58,
+                riskLevel: 'Moderate Risk',
+                lastUpdated: '2026-11-12 11:50 PKT',
+                observations: 'Solar tube-well output reduced during cloudy mornings; community rationing active.'
+            }
+        ];
+
+        const INITIAL_REPORTS = [
+            {
+                id: 'AAB-2026-4109',
+                village: 'Torkham Border Zone',
+                category: 'No water supply',
+                language: 'Pashto (پښتو)',
+                description: 'د تورخم په بازار کې له دوو ورځو راهیسې د څښاک اوبه نشته. (No drinking water in Torkham bazar for two days.)',
+                reporter: 'Gulzar Afridi',
+                status: 'Verified',
+                date: '2026-11-12 10:20'
+            },
+            {
+                id: 'AAB-2026-4112',
+                village: 'Loe Shalman',
+                category: 'Water tank empty',
+                language: 'English',
+                description: 'Main village concrete storage reservoir dropped below 20% this morning.',
+                reporter: 'Shabir Shinwari',
+                status: 'Pending',
+                date: '2026-11-12 13:05'
+            },
+            {
+                id: 'AAB-2026-4115',
+                village: 'Landi Kotal Bazar',
+                category: 'Water leakage',
+                language: 'Urdu (اردو)',
+                description: 'مین بازار پائپ لائن سے پانی ضائع ہو رہا ہے، فوری مرمت کی ضرورت ہے۔ (Main bazar pipeline leaking water, needs urgent repair.)',
+                reporter: 'Niaz Muhammad',
+                status: 'Pending',
+                date: '2026-11-12 14:40'
+            },
+            {
+                id: 'AAB-2026-4098',
+                village: 'Sultankhel',
+                category: 'Low water availability',
+                language: 'English',
+                description: 'Tube-well pressure low in upper Sultankhel mohalla.',
+                reporter: 'Farhan Khan',
+                status: 'Verified',
+                date: '2026-11-11 17:15'
+            }
+        ];
+
+        const INITIAL_ALERTS = [
+            {
+                id: 'ALT-101',
+                village: 'Torkham Border Zone',
+                riskLevel: 'High Risk',
+                date: '2026-11-12 15:10',
+                explanation: 'Storage dropped to 34% with 23 shortage reports and only 4mm rainfall in 14 days.',
+                action: 'Deploy emergency water tankers and prioritize hospital/school storage.',
+                unread: true
+            },
+            {
+                id: 'ALT-102',
+                village: 'Loe Shalman',
+                riskLevel: 'High Risk',
+                date: '2026-11-12 13:45',
+                explanation: 'AI Risk Score reached 79/100 due to acute rainfall deficit (3mm) and empty community tanks.',
+                action: 'Initiate rotational valve scheduling and inspect upper spring intake.',
+                unread: true
+            },
+            {
+                id: 'ALT-103',
+                village: 'Landi Kotal Bazar',
+                riskLevel: 'Moderate Risk',
+                date: '2026-11-12 11:30',
+                explanation: 'Water availability at 52%. Pipeline leakage reported near central bazar.',
+                action: 'Dispatch maintenance team to seal bazar main line leak.',
+                unread: true
+            },
+            {
+                id: 'ALT-104',
+                village: 'Michni Kandao',
+                riskLevel: 'Normal',
+                date: '2026-11-11 16:00',
+                explanation: 'Verified observation confirms 78% reservoir capacity and steady spring discharge.',
+                action: 'Continue standard weekly community monitoring.',
+                unread: false
+            }
+        ];
+
+        // App Reactive State
+        let state = {
+            villages: JSON.parse(JSON.stringify(INITIAL_VILLAGES)),
+            reports: JSON.parse(JSON.stringify(INITIAL_REPORTS)),
+            alerts: JSON.parse(JSON.stringify(INITIAL_ALERTS)),
+            currentUser: null,
+            isAdmin: false,
+            activeTab: 'overview',
+            sidebarCollapsed: false,
+            mapInstance: null,
+            mapMarkers: [],
+            mapRiskFilter: 'all',
+            selectedMapVillageId: 'v1',
+            voiceLang: 'en-US',
+            isRecording: false,
+            charts: {}
+        };
+
+        // -------------------- 2. NAVIGATION & VIEW SWITCHING --------------------
+        function switchTopMode(mode, subTab = null) {
+            document.getElementById('view-landing').classList.add('hidden');
+            document.getElementById('view-dashboard').classList.add('hidden');
+            document.getElementById('view-admin').classList.add('hidden');
+
+            document.querySelectorAll('.mode-pill').forEach(btn => {
+                btn.classList.remove('bg-white', 'text-deepNavy', 'shadow-xs');
+                btn.classList.add('text-slate-600');
+            });
+
+            const activeBtn = document.getElementById(`mode-btn-${mode}`);
+            if (activeBtn) {
+                activeBtn.classList.add('bg-white', 'text-deepNavy', 'shadow-xs');
+                activeBtn.classList.remove('text-slate-600');
+            }
+
+            if (mode === 'landing') {
+                document.getElementById('view-landing').classList.remove('hidden');
+            } else if (mode === 'dashboard') {
+                document.getElementById('view-dashboard').classList.remove('hidden');
+                switchDashTab(subTab || state.activeTab || 'overview');
+            } else if (mode === 'admin') {
+                document.getElementById('view-admin').classList.remove('hidden');
+                renderAdminPortal();
+            }
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function handleAdminSwitch() {
+            state.isAdmin = true;
+            switchTopMode('admin');
+        }
+
+        function switchDashTab(tabId) {
+            state.activeTab = tabId;
+            document.querySelectorAll('.dash-tab').forEach(t => t.classList.add('hidden'));
+            const target = document.getElementById(`dash-tab-${tabId}`);
+            if (target) target.classList.remove('hidden');
+
+            document.querySelectorAll('.dash-nav-btn').forEach(btn => {
+                if (btn.dataset.tab === tabId) {
+                    btn.classList.add('bg-waterBlue', 'text-white');
+                    btn.classList.remove('text-slate-300', 'hover:bg-white/10');
+                } else {
+                    btn.classList.remove('bg-waterBlue', 'text-white');
+                    btn.classList.add('text-slate-300', 'hover:bg-white/10');
+                }
+            });
+
+            // Tab-specific initializations
+            if (tabId === 'overview') {
+                updateOverviewKPIs();
+                renderOverviewCharts();
+                renderRecentActivity();
+            } else if (tabId === 'monitoring') {
+                renderMonitoringTable();
+            } else if (tabId === 'predictions') {
+                populatePredictorSelect();
+                runAIPrediction();
+            } else if (tabId === 'reports') {
+                renderCommunityReportsFeed();
+            } else if (tabId === 'map') {
+                setTimeout(() => {
+                    initOrRefreshMap();
+                }, 80);
+            } else if (tabId === 'alerts') {
+                renderAlertsCenter('all');
+            } else if (tabId === 'analytics') {
+                updateAnalyticsCharts();
+            }
+        }
+
+        function toggleSidebar() {
+            state.sidebarCollapsed = !state.sidebarCollapsed;
+            const sidebar = document.getElementById('dashboard-sidebar');
+            const labels = document.querySelectorAll('.sidebar-label');
+            const icon = document.getElementById('sidebar-toggle-icon');
+
+            if (state.sidebarCollapsed) {
+                sidebar.classList.remove('w-64');
+                sidebar.classList.add('w-16');
+                labels.forEach(el => el.classList.add('hidden'));
+                icon.setAttribute('data-lucide', 'panel-left-open');
+            } else {
+                sidebar.classList.add('w-64');
+                sidebar.classList.remove('w-16');
+                labels.forEach(el => el.classList.remove('hidden'));
+                icon.setAttribute('data-lucide', 'panel-left-close');
+            }
+            lucide.createIcons();
+        }
+
+        // -------------------- 3. HERO INTERACTIVE NODE HELPER --------------------
+        function selectHeroNode(title, riskText, desc, color) {
+            document.getElementById('hero-node-title').textContent = `${title} — ${riskText}`;
+            document.getElementById('hero-node-desc').textContent = `${desc} (Demo Data)`;
+            document.getElementById('hero-node-dot').style.backgroundColor = color;
+        }
+
+        // -------------------- 4. OVERVIEW DASHBOARD & CHARTS --------------------
+        function getRiskBadgeHTML(level, score = null) {
+            const label = score !== null ? `${level} (${score})` : level;
+            if (level === 'High Risk') {
+                return `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-dangerRed/15 text-dangerRed border border-dangerRed/30">${label}</span>`;
+            } else if (level === 'Moderate Risk') {
+                return `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-warnYellow/20 text-amber-800 border border-warnYellow/40">${label}</span>`;
+            }
+            return `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">${label}</span>`;
+        }
+
+        function updateOverviewKPIs() {
+            const totalLocs = state.villages.length;
+            const avgAvail = (state.villages.reduce((acc, v) => acc + v.availability, 0) / totalLocs).toFixed(1);
+            const highRiskCount = state.villages.filter(v => v.riskLevel === 'High Risk').length;
+            const pendingReps = state.reports.filter(r => r.status === 'Pending').length;
+
+            document.getElementById('kpi-locations').textContent = totalLocs;
+            document.getElementById('kpi-avg-water').textContent = `${avgAvail}%`;
+            document.getElementById('kpi-high-risk').textContent = highRiskCount;
+            document.getElementById('kpi-pending-reports').textContent = pendingReps;
+
+            // Sync Hero stats
+            document.getElementById('hero-stat-reports').textContent = 138 + state.reports.length;
+            document.getElementById('hero-stat-alerts').textContent = highRiskCount + 1;
+
+            // Sync Unread Alerts Badge
+            const unreadCount = state.alerts.filter(a => a.unread).length;
+            const badge = document.getElementById('sidebar-unread-badge');
+            badge.textContent = unreadCount;
+            badge.classList.toggle('hidden', unreadCount === 0);
+        }
+
+        function renderOverviewCharts() {
+            const lineCtx = document.getElementById('overviewLineChart');
+            const barCtx = document.getElementById('overviewBarChart');
+            if (!lineCtx || !barCtx) return;
+
+            if (state.charts.overviewLine) state.charts.overviewLine.destroy();
+            if (state.charts.overviewBar) state.charts.overviewBar.destroy();
+
+            state.charts.overviewLine = new Chart(lineCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Nov 06', 'Nov 07', 'Nov 08', 'Nov 09', 'Nov 10', 'Nov 11', 'Nov 12'],
+                    datasets: [
+                        {
+                            label: 'Landi Kotal Bazar (%)',
+                            data: [61, 59, 58, 56, 55, 53, state.villages[0].availability],
+                            borderColor: '#168AAD',
+                            backgroundColor: 'rgba(22, 138, 173, 0.1)',
+                            tension: 0.35,
+                            fill: true
+                        },
+                        {
+                            label: 'Torkham Border Zone (%)',
+                            data: [48, 45, 43, 40, 38, 36, state.villages[1].availability],
+                            borderColor: '#E45858',
+                            backgroundColor: 'rgba(228, 88, 88, 0.08)',
+                            tension: 0.35,
+                            fill: true
+                        },
+                        {
+                            label: 'Michni Kandao (%)',
+                            data: [81, 80, 80, 79, 79, 78, state.villages[2].availability],
+                            borderColor: '#52D6C8',
+                            tension: 0.35,
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } }
+                    },
+                    scales: {
+                        y: { min: 0, max: 100, grid: { color: '#F1F5F9' } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+
+            state.charts.overviewBar = new Chart(barCtx, {
+                type: 'bar',
+                data: {
+                    labels: state.villages.map(v => v.name.split(' ')[0]),
+                    datasets: [{
+                        label: 'Community Reports (Demo)',
+                        data: state.villages.map(v => v.reportsCount),
+                        backgroundColor: state.villages.map(v =>
+                            v.riskLevel === 'High Risk' ? '#E45858' : (v.riskLevel === 'Moderate Risk' ? '#F4B942' : '#168AAD')
+                        ),
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: '#F1F5F9' } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        function renderRecentActivity() {
+            const container = document.getElementById('overview-activity-list');
+            container.innerHTML = state.reports.slice(0, 4).map(rep => `
+                <div class="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div class="space-y-0.5">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-bold text-deepNavy">${rep.village}</span>
+                            <span class="text-[11px] px-2 py-0.5 rounded bg-slate-100 text-slate-600 font-medium">${rep.category}</span>
+                            <span class="text-[10px] font-mono text-slate-400">${rep.id}</span>
+                        </div>
+                        <p class="text-xs text-slate-600 line-clamp-1">${rep.description}</p>
+                    </div>
+                    <div class="flex items-center gap-3 shrink-0">
+                        <span class="text-[11px] text-slate-400">${rep.date}</span>
+                        <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${rep.status === 'Verified' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">
+                            ${rep.status}
+                        </span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // -------------------- 5. WATER MONITORING TABLE --------------------
+        function renderMonitoringTable() {
+            const tbody = document.getElementById('monitoring-table-body');
+            tbody.innerHTML = state.villages.map(v => `
+                <tr class="hover:bg-slate-50/80 transition">
+                    <td class="py-3.5 px-4">
+                        <div class="font-bold text-deepNavy">${v.name}</div>
+                        <div class="text-[11px] text-slate-400">Updated: ${v.lastUpdated}</div>
+                    </td>
+                    <td class="py-3.5 px-4">
+                        <div class="flex items-center gap-2">
+                            <div class="w-20 h-2 bg-slate-100 rounded-full overflow-hidden">
+                                <div class="h-full rounded-full ${v.availability < 40 ? 'bg-dangerRed' : (v.availability < 65 ? 'bg-warnYellow' : 'bg-emerald-500')}" style="width: ${v.availability}%"></div>
+                            </div>
+                            <span class="font-bold text-xs text-deepNavy">${v.availability}%</span>
+                        </div>
+                    </td>
+                    <td class="py-3.5 px-4 text-xs font-medium text-slate-700">${v.rainfall} mm</td>
+                    <td class="py-3.5 px-4 text-xs font-medium text-slate-700">${v.temp}°C</td>
+                    <td class="py-3.5 px-4 text-xs font-medium text-slate-700">${v.groundwaterDepth}</td>
+                    <td class="py-3.5 px-4">${getRiskBadgeHTML(v.riskLevel, v.riskScore)}</td>
+                    <td class="py-3.5 px-4 text-right">
+                        <button onclick="inspectVillageInPredictor('${v.id}')" class="px-3 py-1.5 rounded-lg bg-waterBlue/10 hover:bg-waterBlue/20 text-waterBlue text-xs font-semibold transition">
+                            AI Forecast &rarr;
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function inspectVillageInPredictor(villageId) {
+            switchDashTab('predictions');
+            document.getElementById('pred-village-select').value = villageId;
+            loadVillageIntoPredictor();
+        }
+
+        // -------------------- 6. AI PREDICTION CENTER --------------------
+        function populatePredictorSelect() {
+            const sel = document.getElementById('pred-village-select');
+            const currentVal = sel.value || 'v1';
+            sel.innerHTML = state.villages.map(v => `<option value="${v.id}">${v.name} (${v.riskLevel})</option>`).join('');
+            sel.value = currentVal;
+        }
+
+        function loadVillageIntoPredictor() {
+            const vid = document.getElementById('pred-village-select').value;
+            const village = state.villages.find(v => v.id === vid) || state.villages[0];
+
+            document.getElementById('input-avail').value = village.availability;
+            document.getElementById('input-rain').value = village.rainfall;
+            document.getElementById('input-temp').value = village.temp;
+            document.getElementById('input-reps').value = village.reportsCount;
+            document.getElementById('pred-result-village').textContent = village.name;
+
+            runAIPrediction();
+        }
+
+        function computeRiskScore(avail, rain, temp, reps) {
+            // Transparent weighted heuristic formula (0 to 100)
+            const storageFactor = (100 - avail) * 0.48;
+            const rainDeficitFactor = Math.max(0, (35 - rain) / 35) * 24;
+            const reportFactor = Math.min(20, reps * 0.85);
+            const heatFactor = Math.max(0, (temp - 20) / 25) * 8;
+            return Math.min(99, Math.max(8, Math.round(storageFactor + rainDeficitFactor + reportFactor + heatFactor)));
+        }
+
+        function runAIPrediction() {
+            const avail = Number(document.getElementById('input-avail').value);
+            const rain = Number(document.getElementById('input-rain').value);
+            const temp = Number(document.getElementById('input-temp').value);
+            const reps = Number(document.getElementById('input-reps').value);
+
+            document.getElementById('val-avail').textContent = `${avail}%`;
+            document.getElementById('val-rain').textContent = `${rain} mm`;
+            document.getElementById('val-temp').textContent = `${temp}°C`;
+            document.getElementById('val-reps').textContent = `${reps} reports`;
+
+            const score = computeRiskScore(avail, rain, temp, reps);
+            let level = 'Normal';
+            let badgeClass = 'bg-emerald-100 text-emerald-800 border-emerald-200';
+            if (score >= 70) {
+                level = 'High Risk';
+                badgeClass = 'bg-dangerRed/15 text-dangerRed border-dangerRed/30';
+            } else if (score >= 45) {
+                level = 'Moderate Risk';
+                badgeClass = 'bg-warnYellow/20 text-amber-800 border-warnYellow/40';
+            }
+
+            document.getElementById('pred-score').textContent = score;
+            const badge = document.getElementById('pred-badge');
+            badge.textContent = level;
+            badge.className = `px-3.5 py-1.5 rounded-xl text-xs font-bold border ${badgeClass}`;
+
+            // Natural language AI Explanation
+            const villageName = document.getElementById('pred-result-village').textContent;
+            let explanation = '';
+            if (score >= 70) {
+                explanation = `Critical shortage risk projected for ${villageName} over the next 14 days. Low storage (${avail}%), minimal rainfall (${rain} mm), and ${reps} community reports indicate high probability of tank depletion without intervention.`;
+            } else if (score >= 45) {
+                explanation = `Recent water observations in ${villageName} indicate declining availability (${avail}%) alongside moderate rainfall deficit (${rain} mm). Continued monitoring and proactive conservation are recommended.`;
+            } else {
+                explanation = `Water supply indicators for ${villageName} remain healthy (${avail}% storage, ${rain} mm rainfall). No acute shortage predicted within the 14-day window.`;
+            }
+            document.getElementById('pred-explanation').textContent = explanation;
+
+            // Factors & Actions
+            const factors = [
+                `• Reservoir / Well Storage: ${avail}% (${avail < 45 ? 'Critical draw-down' : 'Moderate buffer'})`,
+                `• 14-Day Precipitation: ${rain} mm (${rain < 10 ? 'Dry anomaly' : 'Adequate recharge'})`,
+                `• Community Signal Volume: ${reps} local reports logged`
+            ];
+            document.getElementById('pred-factors').innerHTML = factors.map(f => `<li>${f}</li>`).join('');
+
+            const actions = score >= 70
+                ? [
+                    '• Alert District Khyber water tanker dispatch unit',
+                    '• Issue Pashto/Urdu conservation advisory to village elders',
+                    '• Prioritize clinic, school, and drinking water points'
+                  ]
+                : (score >= 45
+                    ? [
+                        '• Inspect distribution pipelines for physical leakage',
+                        '• Implement equitable morning/evening valve schedule',
+                        '• Encourage household rainwater & greywater reuse'
+                      ]
+                    : [
+                        '• Maintain weekly community reservoir log',
+                        '• Conduct routine spring & solar pump checkup'
+                      ]);
+            document.getElementById('pred-actions').innerHTML = actions.map(a => `<li>${a}</li>`).join('');
+
+            // Render 14-day forecast curve
+            const trendCtx = document.getElementById('predictionTrendChart');
+            if (trendCtx) {
+                if (state.charts.predTrend) state.charts.predTrend.destroy();
+                const slope = score >= 70 ? 1.1 : (score >= 45 ? 0.6 : -0.3);
+                const points = Array.from({ length: 8 }, (_, i) => Math.min(99, Math.max(5, Math.round(score + (i - 3) * slope * 2))));
+
+                state.charts.predTrend = new Chart(trendCtx, {
+                    type: 'line',
+                    data: {
+                        labels: ['Today', 'Day 2', 'Day 4', 'Day 6', 'Day 8', 'Day 10', 'Day 12', 'Day 14'],
+                        datasets: [{
+                            label: 'Predicted Shortage Risk Score (0-100)',
+                            data: points,
+                            borderColor: score >= 70 ? '#E45858' : (score >= 45 ? '#F4B942' : '#168AAD'),
+                            backgroundColor: score >= 70 ? 'rgba(228,88,88,0.12)' : 'rgba(22,138,173,0.12)',
+                            fill: true,
+                            tension: 0.35
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: { min: 0, max: 100, grid: { color: '#F1F5F9' } },
+                            x: { grid: { display: false } }
+                        }
+                    }
+                });
+            }
+        }
+
+        // -------------------- 7. COMMUNITY VOICE REPORTING --------------------
+        function setVoiceLang(langCode, btnEl) {
+            state.voiceLang = langCode;
+            document.querySelectorAll('.voice-lang-btn').forEach(b => {
+                b.classList.remove('bg-deepNavy', 'text-white');
+                b.classList.add('bg-white', 'border', 'border-slate-300', 'text-slate-700');
+            });
+            btnEl.classList.add('bg-deepNavy', 'text-white');
+            btnEl.classList.remove('bg-white', 'border', 'border-slate-300', 'text-slate-700');
+        }
+
+        function toggleVoiceRecording() {
+            const btn = document.getElementById('voice-record-btn');
+            const btnText = document.getElementById('voice-btn-text');
+            const statusText = document.getElementById('voice-status-text');
+            const descBox = document.getElementById('rep-description');
+            const selectedVillage = document.getElementById('rep-village').value;
+
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+            if (SpeechRecognition && !state.isRecording) {
+                try {
+                    const recognition = new SpeechRecognition();
+                    recognition.lang = state.voiceLang;
+                    recognition.interimResults = false;
+                    state.isRecording = true;
+                    btnText.textContent = 'Listening... Speak Now';
+                    btn.classList.add('animate-pulse');
+                    statusText.textContent = 'Microphone active. Speak clearly into your device...';
+
+                    recognition.onresult = (event) => {
+                        const transcript = event.results[0][0].transcript;
+                        descBox.value = (descBox.value ? descBox.value + ' ' : '') + transcript;
+                        statusText.textContent = 'Voice transcribed successfully!';
+                    };
+                    recognition.onerror = () => {
+                        applyDemoVoiceSample(selectedVillage, descBox, statusText);
+                    };
+                    recognition.onend = () => {
+                        state.isRecording = false;
+                        btnText.textContent = 'Start Voice Recording';
+                        btn.classList.remove('animate-pulse');
+                    };
+                    recognition.start();
+                    return;
+                } catch (e) {
+                    // Fallback below
+                }
+            }
+
+            // Graceful Demo Transcription Fallback
+            btnText.textContent = 'Recording Sample...';
+            btn.classList.add('animate-pulse');
+            statusText.textContent = 'Simulating multilingual voice-to-text capture...';
+            setTimeout(() => {
+                applyDemoVoiceSample(selectedVillage, descBox, statusText);
+                btnText.textContent = 'Start Voice Recording';
+                btn.classList.remove('animate-pulse');
+            }, 1100);
+        }
+
+        function applyDemoVoiceSample(village, descBox, statusText) {
+            const samples = {
+                'ps-AF': `په ${village} کې د اوبو ټانکۍ تشه شوې ده او خلک د څښاک اوبو له ستونزې سره مخ دي. (Demo Pashto Transcription)`,
+                'ur-PK': `${village} میں پچھلے دو دن سے پانی کی سپلائی بہت کم ہے، ٹینکی خالی ہو رہی ہے۔ (Demo Urdu Transcription)`,
+                'en-US': `Community storage tank in ${village} is critically low and pressure has dropped since morning. (Demo Voice Transcription)`
+            };
+            descBox.value = samples[state.voiceLang] || samples['en-US'];
+            statusText.textContent = 'Demo voice transcription inserted (Review & submit below).';
+        }
+
+        function previewReportImage(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                document.getElementById('rep-image-preview').src = e.target.result;
+                document.getElementById('rep-image-preview-wrap').classList.remove('hidden');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function submitCommunityReport(event) {
+            event.preventDefault();
+            const village = document.getElementById('rep-village').value;
+            const category = document.getElementById('rep-category').value;
+            const description = document.getElementById('rep-description').value.trim();
+            const reporter = document.getElementById('rep-reporter').value.trim() || 'Community Member';
+            const langMap = { 'en-US': 'English', 'ur-PK': 'Urdu (اردو)', 'ps-AF': 'Pashto (پښتو)' };
+
+            const uniqueId = `AAB-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+            const newReport = {
+                id: uniqueId,
+                village,
+                category,
+                language: langMap[state.voiceLang] || 'English',
+                description,
+                reporter,
+                status: 'Pending',
+                date: '2026-11-12 Just Now'
+            };
+
+            state.reports.unshift(newReport);
+
+            // Increment village report count
+            const vObj = state.villages.find(v => v.name === village);
+            if (vObj) vObj.reportsCount += 1;
+
+            document.getElementById('conf-report-id').textContent = uniqueId;
+            document.getElementById('report-confirmation-card').classList.remove('hidden');
+            document.getElementById('community-report-form').reset();
+            document.getElementById('rep-image-preview-wrap').classList.add('hidden');
+
+            renderCommunityReportsFeed();
+            updateOverviewKPIs();
+        }
+
+        function renderCommunityReportsFeed() {
+            const feed = document.getElementById('community-reports-feed');
+            feed.innerHTML = state.reports.map(r => `
+                <div class="p-3.5 rounded-xl bg-lightBg border border-slate-200/70 space-y-1.5">
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="text-xs font-bold text-deepNavy">${r.village}</span>
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${r.status === 'Verified' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">
+                            ${r.status}
+                        </span>
+                    </div>
+                    <div class="text-[11px] font-semibold text-waterBlue">${r.category} • <span class="text-slate-500 font-normal">${r.language}</span></div>
+                    <p class="text-xs text-slate-700 leading-relaxed">${r.description}</p>
+                    <div class="flex items-center justify-between text-[10px] text-slate-400 pt-1">
+                        <span>By ${r.reporter} (${r.id})</span>
+                        <span>${r.date}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // -------------------- 8. INTERACTIVE LEAFLET WATER RISK MAP --------------------
+        function initOrRefreshMap() {
+            const mapEl = document.getElementById('khyber-leaflet-map');
+            if (!mapEl) return;
+
+            if (!state.mapInstance) {
+                state.mapInstance = L.map('khyber-leaflet-map').setView([34.104, 71.142], 12);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 18,
+                    attribution: '&copy; OpenStreetMap contributors'
+                }).addTo(state.mapInstance);
+            } else {
+                state.mapInstance.invalidateSize();
+            }
+
+            renderMapMarkers();
+            const initialV = state.villages.find(v => v.id === state.selectedMapVillageId) || state.villages[0];
+            showMapVillageDetails(initialV);
+        }
+
+        function renderMapMarkers() {
+            if (!state.mapInstance) return;
+            state.mapMarkers.forEach(m => state.mapInstance.removeLayer(m));
+            state.mapMarkers = [];
+
+            const searchTerm = (document.getElementById('map-search-input')?.value || '').toLowerCase();
+
+            state.villages.forEach(v => {
+                const matchesSearch = v.name.toLowerCase().includes(searchTerm);
+                const matchesRisk = state.mapRiskFilter === 'all' || v.riskLevel === state.mapRiskFilter;
+                if (!matchesSearch || !matchesRisk) return;
+
+                const color = v.riskLevel === 'High Risk' ? '#E45858' : (v.riskLevel === 'Moderate Risk' ? '#F4B942' : '#10B981');
+                const icon = L.divIcon({
+                    className: 'custom-div-icon',
+                    html: `<div style="background:${color}; width:22px; height:22px; border-radius:50%; border:3px solid #FFFFFF; box-shadow:0 2px 8px rgba(0,0,0,0.35);"></div>`,
+                    iconSize: [22, 22],
+                    iconAnchor: [11, 11]
+                });
+
+                const marker = L.marker([v.lat, v.lng], { icon })
+                    .addTo(state.mapInstance)
+                    .bindTooltip(`<strong>${v.name}</strong><br>${v.riskLevel} (${v.riskScore}/100)`)
+                    .on('click', () => {
+                        state.selectedMapVillageId = v.id;
+                        showMapVillageDetails(v);
+                    });
+
+                state.mapMarkers.push(marker);
+            });
+        }
+
+        function filterMapMarkers() {
+            renderMapMarkers();
+        }
+
+        function setMapRiskFilter(filterVal, btnEl) {
+            state.mapRiskFilter = filterVal;
+            document.querySelectorAll('.map-filter-btn').forEach(b => {
+                b.classList.remove('bg-deepNavy', 'text-white');
+            });
+            btnEl.classList.add('bg-deepNavy', 'text-white');
+            renderMapMarkers();
+        }
+
+        function showMapVillageDetails(v) {
+            const panel = document.getElementById('map-detail-panel');
+            const recentVillageReports = state.reports.filter(r => r.village === v.name);
+
+            panel.innerHTML = `
+                <div class="flex items-start justify-between gap-2">
+                    <div>
+                        <span class="text-[11px] font-bold uppercase tracking-wider text-waterBlue">District Khyber Node</span>
+                        <h3 class="text-lg font-bold text-deepNavy mt-0.5">${v.name}</h3>
+                    </div>
+                    ${getRiskBadgeHTML(v.riskLevel, v.riskScore)}
+                </div>
+
+                <div class="grid grid-cols-2 gap-3 pt-2">
+                    <div class="p-3 rounded-xl bg-lightBg border border-slate-200/70">
+                        <div class="text-[11px] text-slate-500">Water Availability</div>
+                        <div class="text-lg font-heading font-bold text-deepNavy">${v.availability}%</div>
+                    </div>
+                    <div class="p-3 rounded-xl bg-lightBg border border-slate-200/70">
+                        <div class="text-[11px] text-slate-500">Recent Reports</div>
+                        <div class="text-lg font-heading font-bold text-waterBlue">${v.reportsCount}</div>
+                    </div>
+                </div>
+
+                <div class="space-y-1.5">
+                    <div class="text-xs font-bold text-deepNavy">Available Water Observations (Demo)</div>
+                    <p class="text-xs text-slate-600 leading-relaxed bg-lightBg p-3 rounded-xl border border-slate-200/60">${v.observations}</p>
+                </div>
+
+                <div class="space-y-1.5">
+                    <div class="text-xs font-bold text-deepNavy">Latest Community Signal</div>
+                    <p class="text-xs text-slate-600 italic">${recentVillageReports[0] ? `"${recentVillageReports[0].description}"` : 'No recent text incidents logged.'}</p>
+                </div>
+
+                <div class="flex items-center justify-between pt-2">
+                    <span class="text-[11px] text-slate-400">Updated: ${v.lastUpdated}</span>
+                    <button onclick="inspectVillageInPredictor('${v.id}')" class="text-xs font-bold text-waterBlue hover:underline">Run AI Forecast &rarr;</button>
+                </div>
+            `;
+        }
+
+        // -------------------- 9. SMART ALERT CENTER --------------------
+        function renderAlertsCenter(filterLevel = 'all') {
+            const container = document.getElementById('alerts-container');
+            const filtered = filterLevel === 'all' ? state.alerts : state.alerts.filter(a => a.riskLevel === filterLevel);
+
+            container.innerHTML = filtered.map(a => `
+                <div class="bg-white p-5 rounded-2xl border ${a.unread ? 'border-waterBlue/50 shadow-xs' : 'border-slate-200/80 opacity-85'} flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div class="space-y-1.5">
+                        <div class="flex flex-wrap items-center gap-2">
+                            ${a.unread ? '<span class="w-2 h-2 rounded-full bg-waterBlue"></span>' : ''}
+                            <span class="font-bold text-sm text-deepNavy">${a.village}</span>
+                            ${getRiskBadgeHTML(a.riskLevel)}
+                            <span class="text-[11px] text-slate-400">${a.date}</span>
+                        </div>
+                        <p class="text-xs sm:text-sm text-slate-700">${a.explanation}</p>
+                        <div class="text-xs font-medium text-waterBlue"><strong>Suggested Action:</strong> ${a.action}</div>
+                    </div>
+                    <div class="shrink-0">
+                        ${a.unread
+                            ? `<button onclick="markAlertRead('${a.id}')" class="px-3 py-1.5 rounded-xl bg-lightBg hover:bg-slate-200 text-xs font-semibold text-deepNavy">Mark as Read</button>`
+                            : `<span class="text-xs text-slate-400 font-medium">Read</span>`
+                        }
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function filterAlerts(level, btnEl) {
+            document.querySelectorAll('.alert-filter-btn').forEach(b => {
+                b.classList.remove('bg-deepNavy', 'text-white');
+                b.classList.add('bg-white', 'border', 'border-slate-200', 'text-slate-700');
+            });
+            btnEl.classList.add('bg-deepNavy', 'text-white');
+            btnEl.classList.remove('bg-white', 'border', 'border-slate-200', 'text-slate-700');
+            renderAlertsCenter(level);
+        }
+
+        function markAlertRead(id) {
+            const alertObj = state.alerts.find(a => a.id === id);
+            if (alertObj) alertObj.unread = false;
+            updateOverviewKPIs();
+            renderAlertsCenter('all');
+        }
+
+        function markAllAlertsRead() {
+            state.alerts.forEach(a => a.unread = false);
+            updateOverviewKPIs();
+            renderAlertsCenter('all');
+        }
+
+        // -------------------- 10. ANALYTICS & CSV EXPORT --------------------
+        function updateAnalyticsCharts() {
+            const compCtx = document.getElementById('analyticsComparisonChart');
+            const doughCtx = document.getElementById('analyticsDoughnutChart');
+            if (!compCtx || !doughCtx) return;
+
+            if (state.charts.analyticsComp) state.charts.analyticsComp.destroy();
+            if (state.charts.analyticsDough) state.charts.analyticsDough.destroy();
+
+            state.charts.analyticsComp = new Chart(compCtx, {
+                type: 'bar',
+                data: {
+                    labels: state.villages.map(v => v.name),
+                    datasets: [
+                        {
+                            label: 'Water Availability (%)',
+                            data: state.villages.map(v => v.availability),
+                            backgroundColor: '#168AAD',
+                            borderRadius: 6
+                        },
+                        {
+                            label: '14-Day Rainfall (mm)',
+                            data: state.villages.map(v => v.rainfall),
+                            backgroundColor: '#52D6C8',
+                            borderRadius: 6
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom' } },
+                    scales: { y: { beginAtZero: true } }
+                }
+            });
+
+            const high = state.villages.filter(v => v.riskLevel === 'High Risk').length;
+            const mod = state.villages.filter(v => v.riskLevel === 'Moderate Risk').length;
+            const norm = state.villages.filter(v => v.riskLevel === 'Normal').length;
+
+            state.charts.analyticsDough = new Chart(doughCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['High Risk', 'Moderate Risk', 'Normal'],
+                    datasets: [{
+                        data: [high, mod, norm],
+                        backgroundColor: ['#E45858', '#F4B942', '#10B981'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom' } }
+                }
+            });
+        }
+
+        function exportCSVReport() {
+            const headers = ['Village', 'Availability_Pct', 'Rainfall_mm', 'Temp_C', 'Reports_Count', 'AI_Risk_Score', 'Risk_Level', 'Data_Source'];
+            const rows = state.villages.map(v => [
+                `"${v.name}"`, v.availability, v.rainfall, v.temp, v.reportsCount, v.riskScore, `"${v.riskLevel}"`, '"Demo Data"'
+            ]);
+            const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'AAB_AI_Landi_Kotal_Water_Report_Demo.csv';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+
+        // -------------------- 11. ADMIN PORTAL --------------------
+        function renderAdminPortal() {
+            const pendingCount = state.reports.filter(r => r.status === 'Pending').length;
+            document.getElementById('admin-pending-count').textContent = `${pendingCount} Pending`;
+
+            const listEl = document.getElementById('admin-reports-list');
+            listEl.innerHTML = state.reports.map(r => `
+                <div class="p-4 rounded-xl bg-lightBg border border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div class="space-y-1">
+                        <div class="flex items-center gap-2">
+                            <span class="font-mono text-xs font-bold text-waterBlue">${r.id}</span>
+                            <span class="text-xs font-bold text-deepNavy">${r.village}</span>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${r.status === 'Verified' ? 'bg-emerald-100 text-emerald-800' : (r.status === 'Rejected' ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800')}">
+                                ${r.status}
+                            </span>
+                        </div>
+                        <p class="text-xs text-slate-700">${r.description}</p>
+                        <div class="text-[11px] text-slate-400">Category: ${r.category} • Reporter: ${r.reporter}</div>
+                    </div>
+                    <div class="flex items-center gap-2 shrink-0">
+                        ${r.status === 'Pending' ? `
+                            <button onclick="verifyReportAdmin('${r.id}', 'Verified')" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold">Approve</button>
+                            <button onclick="verifyReportAdmin('${r.id}', 'Rejected')" class="px-3 py-1.5 rounded-lg bg-white border border-slate-300 hover:bg-red-50 text-dangerRed text-xs font-semibold">Reject</button>
+                        ` : `<span class="text-xs text-slate-400 font-medium">Reviewed</span>`}
+                    </div>
+                </div>
+            `).join('');
+
+            const editorEl = document.getElementById('admin-villages-editor');
+            editorEl.innerHTML = state.villages.map(v => `
+                <div class="p-3.5 rounded-xl bg-lightBg border border-slate-200/80 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-deepNavy">${v.name}</span>
+                        ${getRiskBadgeHTML(v.riskLevel, v.riskScore)}
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <label class="text-[11px] text-slate-500 shrink-0">Availability %:</label>
+                        <input type="range" min="10" max="100" value="${v.availability}" onchange="adminUpdateVillageAvail('${v.id}', this.value)" class="flex-1 accent-waterBlue cursor-pointer">
+                        <span class="text-xs font-bold text-deepNavy w-10 text-right">${v.availability}%</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function verifyReportAdmin(reportId, decision) {
+            const rep = state.reports.find(r => r.id === reportId);
+            if (!rep) return;
+            rep.status = decision;
+
+            if (decision === 'Verified') {
+                state.alerts.unshift({
+                    id: 'ALT-' + Math.floor(200 + Math.random() * 800),
+                    village: rep.village,
+                    riskLevel: 'Moderate Risk',
+                    date: '2026-11-12 Verified',
+                    explanation: `Verified community report (${rep.id}): ${rep.category}.`,
+                    action: 'Field verification team notified in Landi Kotal.',
+                    unread: true
+                });
+            }
+            updateOverviewKPIs();
+            renderAdminPortal();
+        }
+
+        function adminUpdateVillageAvail(villageId, newAvail) {
+            const v = state.villages.find(item => item.id === villageId);
+            if (!v) return;
+            v.availability = Number(newAvail);
+            v.riskScore = computeRiskScore(v.availability, v.rainfall, v.temp, v.reportsCount);
+            v.riskLevel = v.riskScore >= 70 ? 'High Risk' : (v.riskScore >= 45 ? 'Moderate Risk' : 'Normal');
+            v.lastUpdated = '2026-11-12 Updated by Admin';
+
+            updateOverviewKPIs();
+            renderAdminPortal();
+        }
+
+        function resetDemoState() {
+            state.villages = JSON.parse(JSON.stringify(INITIAL_VILLAGES));
+            state.reports = JSON.parse(JSON.stringify(INITIAL_REPORTS));
+            state.alerts = JSON.parse(JSON.stringify(INITIAL_ALERTS));
+            updateOverviewKPIs();
+            switchDashTab('overview');
+        }
+
+        // -------------------- 12. FLOATING AAB WATER ASSISTANT --------------------
+        function toggleAssistant() {
+            document.getElementById('assistant-window').classList.toggle('hidden');
+        }
+
+        function askAssistantPreset(promptText) {
+            document.getElementById('assistant-input').value = promptText;
+            handleAssistantSubmit(new Event('submit'));
+        }
+
+        function handleAssistantSubmit(event) {
+            event.preventDefault();
+            const input = document.getElementById('assistant-input');
+            const query = input.value.trim();
+            if (!query) return;
+
+            const msgs = document.getElementById('assistant-messages');
+            msgs.innerHTML += `
+                <div class="ml-8 bg-deepNavy text-white p-3 rounded-xl leading-relaxed">
+                    ${query}
+                </div>
+            `;
+            input.value = '';
+
+            const reply = generateAssistantResponse(query);
+            setTimeout(() => {
+                msgs.innerHTML += `
+                    <div class="mr-4 bg-white p-3 rounded-xl border border-slate-200/80 text-deepNavy leading-relaxed shadow-2xs">
+                        <div class="text-[10px] font-bold text-waterBlue uppercase mb-1">AAB Water Assistant (Demo AI)</div>
+                        ${reply}
+                    </div>
+                `;
+                msgs.scrollTop = msgs.scrollHeight;
+            }, 350);
+        }
+
+        function generateAssistantResponse(q) {
+            const lower = q.toLowerCase();
+            if (q.includes('پښتو') || lower.includes('pashto')) {
+                return 'په لنډي کوتل او تورخم کې د اوبو د کمښت د مخنیوي لپاره مهرباني وکړئ د اوبو ضایع کیدو مخه ونیسئ. تاسو کولی شئ د "Community Reports" له لارې په پښتو غږ کې خپله ستونزه ثبت کړئ. (Demo Pashto Guidance)';
+            }
+            if (q.includes('اردو') || lower.includes('urdu')) {
+                return 'لنڈی کوتل اور طورخم کے دیہات میں پانی کی بچت کریں۔ کسی بھی ہنگامی صورتحال یا ٹینکی خالی ہونے کی صورت میں کمیونٹی رپورٹ فارم میں اردو آواز کے ذریعے اطلاع درج کریں۔ (Demo Urdu Guidance)';
+            }
+            if (lower.includes('torkham') || lower.includes('landi kotal') || lower.includes('situation') || lower.includes('village')) {
+                const torkham = state.villages.find(v => v.id === 'v2');
+                const lk = state.villages.find(v => v.id === 'v1');
+                return `Based on current <strong>Demo Data</strong>: <strong>Torkham Border Zone</strong> is at <strong>High Risk (${torkham.riskScore}/100)</strong> with ${torkham.availability}% storage, while <strong>Landi Kotal Bazar</strong> is at <strong>Moderate Risk (${lk.riskScore}/100)</strong> with ${lk.availability}% storage.`;
+            }
+            if (lower.includes('save') || lower.includes('conserve')) {
+                return 'Key water-saving actions for District Khyber households: (1) Repair leaking tank valves immediately, (2) Store drinking water cleanly ahead of scheduled supply hours, and (3) Reuse household wash water for courtyard plants.';
+            }
+            if (lower.includes('report')) {
+                return 'Click <strong>"Community Reports"</strong> in the Intelligence Center, select your village, choose English, Urdu, or Pashto voice recording, and submit to receive a tracking ID.';
+            }
+            return 'I can help analyze simulated water risk across Landi Kotal, Torkham, Michni Kandao, Loe Shalman, and Sultankhel, or guide you in English, Urdu, and Pashto.';
+        }
+
+        // -------------------- 13. AUTH MODAL --------------------
+        function openAuthModal() {
+            document.getElementById('auth-modal').classList.remove('hidden');
+        }
+        function closeAuthModal() {
+            document.getElementById('auth-modal').classList.add('hidden');
+        }
+        function submitAuthForm(event) {
+            event.preventDefault();
+            const name = document.getElementById('auth-name').value;
+            const role = document.getElementById('auth-role').value;
+            state.currentUser = name;
+            state.isAdmin = role === 'admin';
+            document.getElementById('auth-btn-label').textContent = name.split(' ')[0];
+            closeAuthModal();
+            if (state.isAdmin) {
+                switchTopMode('admin');
+            } else {
+                switchTopMode('dashboard', 'overview');
+            }
+        }
+
+        // -------------------- 14. BOOTSTRAP ON LOAD --------------------
+        window.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            updateOverviewKPIs();
+        });
+    </script>
+</body>
+</html>
